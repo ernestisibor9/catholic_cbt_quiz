@@ -1,0 +1,980 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "CATHOLIC QUIZ API | Stable Shield Solutions",
+        "description": "Backend for the Catholic Quiz project. Powered by Stable Shield Solutions",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/test": {
+            "get": {
+                "summary": "Testing Swagger",
+                "operationId": "3fa7f80935ba3873772761ce8530c54b",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/api/v1/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User login",
+                "description": "Authenticate user and return JWT token",
+                "operationId": "fb4334809c45e4a84f104941ec753740",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "user@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "secret123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "bearer"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
+                                        },
+                                        "user": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "John Doe"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "user@example.com"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "admin"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid email or password"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/create/dioceses": {
+            "post": {
+                "tags": [
+                    "Diocese"
+                ],
+                "summary": "Create a new Diocese",
+                "description": "Create a diocese and assign a diocesan admin. Requires JWT authentication.",
+                "operationId": "51fadba4b3c80ae414b9b0e01d8a3433",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "province",
+                                    "state",
+                                    "lga",
+                                    "address",
+                                    "contact_number",
+                                    "email"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Catholic Diocese of Abuja"
+                                    },
+                                    "province": {
+                                        "type": "string",
+                                        "example": "Abuja Province"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "FCT"
+                                    },
+                                    "lga": {
+                                        "type": "string",
+                                        "example": "Abuja Municipal"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "123 Catholic Road, Abuja"
+                                    },
+                                    "contact_number": {
+                                        "type": "string",
+                                        "example": "+2348012345678"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "diocese@church.org"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Diocese created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diocese created and email sent to Diocese Admin"
+                                        },
+                                        "diocese": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "CATHOLIC DIOCESE OF ABUJA"
+                                                },
+                                                "province": {
+                                                    "type": "string",
+                                                    "example": "Abuja Province"
+                                                },
+                                                "state": {
+                                                    "type": "string",
+                                                    "example": "FCT"
+                                                },
+                                                "lga": {
+                                                    "type": "string",
+                                                    "example": "Abuja Municipal"
+                                                },
+                                                "address": {
+                                                    "type": "string",
+                                                    "example": "123 Catholic Road, Abuja"
+                                                },
+                                                "contact_number": {
+                                                    "type": "string",
+                                                    "example": "+2348012345678"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "diocesan_admin": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "diocese@church.org"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "diocesan_admin"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized (missing or invalid token)"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/verify/{userId}/{token}": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify user email",
+                "description": "Verify a user's email by clicking the link sent to their email",
+                "operationId": "ef4862fcdf798ecfc953719d3883ff80",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "ID of the user to verify",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "description": "Email verification token sent to the user",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "A1B2C3D4"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email verified successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Email verified successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired verification token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid or expired verification token"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/resend": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Resend email verification token",
+                "description": "Resend the verification email to a user who has not yet verified their email.",
+                "operationId": "7cb0bf19babfa8e5b4667245434e406b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "user@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Verification email resent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Verification email resent"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Email already verified",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Email already verified"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The email field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "email": [
+                                                    "The selected email is invalid."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/dioceses/update": {
+            "post": {
+                "tags": [
+                    "Diocese"
+                ],
+                "summary": "Update Diocese Profile",
+                "description": "Partially update the profile of the diocese linked to the authenticated user. Fields are optional. Requires JWT authentication.",
+                "operationId": "updateDioceseProfile",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "province": {
+                                        "type": "string",
+                                        "example": "Lagos Province 2"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    },
+                                    "lga": {
+                                        "type": "string",
+                                        "example": "Alimosho"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "12 Ipaja road, Lagos"
+                                    },
+                                    "contact_number": {
+                                        "type": "string",
+                                        "example": "+2348012345678"
+                                    },
+                                    "education_secretary": {
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "latest_news": {
+                                        "type": "string",
+                                        "example": "Diocese event update"
+                                    },
+                                    "logo": {
+                                        "description": "Diocese logo image (png, jpg, jpeg)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Diocese profile updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diocese profile updated successfully"
+                                        },
+                                        "diocese": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "province": {
+                                                    "type": "string",
+                                                    "example": "Lagos Province 2"
+                                                },
+                                                "state": {
+                                                    "type": "string",
+                                                    "example": "Lagos"
+                                                },
+                                                "lga": {
+                                                    "type": "string",
+                                                    "example": "Alimosho"
+                                                },
+                                                "address": {
+                                                    "type": "string",
+                                                    "example": "12 Ipaja road, Lagos"
+                                                },
+                                                "contact_number": {
+                                                    "type": "string",
+                                                    "example": "+2348012345678"
+                                                },
+                                                "education_secretary": {
+                                                    "type": "string",
+                                                    "example": "John Doe"
+                                                },
+                                                "latest_news": {
+                                                    "type": "string",
+                                                    "example": "Diocese event update"
+                                                },
+                                                "logo": {
+                                                    "type": "string",
+                                                    "example": "uploads/dioceses/170000123_abcd1234.png"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No diocese linked to this account",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No diocese linked to this account"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The logo must be an image."
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "logo": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "The logo must be a file of type: png, jpg, jpeg."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/create/schools": {
+            "post": {
+                "tags": [
+                    "School"
+                ],
+                "summary": "Create a School",
+                "description": "Create a new school under the logged-in diocesan admin's diocese and assign a school admin. Requires JWT authentication.",
+                "operationId": "cd8b3e5be425988f8b8a4682a83f3b0a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "province",
+                                    "state",
+                                    "lga"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "St. Joseph Catholic School"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "stjoseph@school.com"
+                                    },
+                                    "province": {
+                                        "type": "string",
+                                        "example": "Lagos Province"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    },
+                                    "lga": {
+                                        "type": "string",
+                                        "example": "Ikeja"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "School created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School created and email sent to School Admin"
+                                        },
+                                        "school": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "ST. JOSEPH CATHOLIC SCHOOL"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "stjoseph@school.com"
+                                                },
+                                                "province": {
+                                                    "type": "string",
+                                                    "example": "Lagos Province"
+                                                },
+                                                "state": {
+                                                    "type": "string",
+                                                    "example": "Lagos"
+                                                },
+                                                "lga": {
+                                                    "type": "string",
+                                                    "example": "Ikeja"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "school_admin": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "stjoseph@school.com"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "school_admin"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "User does not belong to any diocese",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "error"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged-in user does not belong to any diocese"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The name has already been taken."
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "name": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "email": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "province": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "state": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "lga": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/schools/update": {
+            "post": {
+                "tags": [
+                    "School"
+                ],
+                "summary": "Update School Profile",
+                "description": "Partially update the school profile linked to the authenticated school admin. All fields are optional. Requires JWT authentication.",
+                "operationId": "updateSchoolProfile",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "ST MARYS SECONDARY SCHOOL"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "stmaryschool@gmail.com"
+                                    },
+                                    "province": {
+                                        "type": "string",
+                                        "example": "Lagos Province 2"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    },
+                                    "lga": {
+                                        "type": "string",
+                                        "example": "Alimosho"
+                                    },
+                                    "latitude": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 6.5244
+                                    },
+                                    "longitude": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 3.3792
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "12 Ipaja road, Lagos"
+                                    },
+                                    "contact_number": {
+                                        "type": "string",
+                                        "example": "+2348012345678"
+                                    },
+                                    "class_categories[]": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Primary",
+                                            "Junior Secondary",
+                                            "Senior Secondary"
+                                        ]
+                                    },
+                                    "subjects_offered[]": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Mathematics",
+                                            "English",
+                                            "Physics",
+                                            "Chemistry"
+                                        ]
+                                    },
+                                    "latest_news": {
+                                        "type": "string",
+                                        "example": "School resumes fully on Monday"
+                                    },
+                                    "logo": {
+                                        "description": "School logo image (png, jpg, jpeg)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "School profile updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School profile updated successfully"
+                                        },
+                                        "school": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No school linked to this account",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No school linked to this account"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The email has already been taken."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Enter token as: Bearer {JWT token}",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Authentication"
+        },
+        {
+            "name": "Diocese",
+            "description": "Diocese"
+        },
+        {
+            "name": "School",
+            "description": "School"
+        }
+    ]
+}
