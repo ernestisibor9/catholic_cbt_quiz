@@ -951,6 +951,119 @@
                     }
                 ]
             }
+        },
+        "/api/v1/createLearners": {
+            "post": {
+                "tags": [
+                    "Learner"
+                ],
+                "summary": "Register a new learner",
+                "description": "Allows school admin to create learners. A user account is automatically created.",
+                "operationId": "createLearner",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "surname": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "middle_name": {
+                                        "type": "string",
+                                        "example": "Michael"
+                                    },
+                                    "dob": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2010-05-15"
+                                    },
+                                    "religion": {
+                                        "type": "string",
+                                        "example": "Christianity"
+                                    },
+                                    "residential_address": {
+                                        "type": "string",
+                                        "example": "12 Ipaja Road, Lagos"
+                                    },
+                                    "state_of_origin": {
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    },
+                                    "lga_of_origin": {
+                                        "type": "string",
+                                        "example": "Alimosho"
+                                    },
+                                    "previous_class": {
+                                        "type": "string",
+                                        "example": "Primary 5"
+                                    },
+                                    "present_class": {
+                                        "type": "string",
+                                        "example": "Primary 6"
+                                    },
+                                    "nin": {
+                                        "type": "string",
+                                        "example": "12345678901"
+                                    },
+                                    "parent_name": {
+                                        "type": "string",
+                                        "example": "Jane Doe"
+                                    },
+                                    "parent_relationship": {
+                                        "type": "string",
+                                        "example": "Mother"
+                                    },
+                                    "parent_phone": {
+                                        "type": "string",
+                                        "example": "+2348012345678"
+                                    },
+                                    "photo": {
+                                        "description": "Learner photo",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Learner created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Learner created successfully"
+                                        },
+                                        "learner": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -975,6 +1088,10 @@
         {
             "name": "School",
             "description": "School"
+        },
+        {
+            "name": "Learner",
+            "description": "Learner"
         }
     ]
 }

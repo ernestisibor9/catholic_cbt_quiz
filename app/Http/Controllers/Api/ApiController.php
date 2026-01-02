@@ -781,137 +781,242 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Post(
- *     path="/api/v1/schools/update",
- *     operationId="updateSchoolProfile",
- *     summary="Update School Profile",
- *     description="Partially update the school profile linked to the authenticated school admin. All fields are optional. Requires JWT authentication.",
- *     tags={"School"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\MediaType(
- *             mediaType="multipart/form-data",
- *             @OA\Schema(
- *                 type="object",
- *
- *                 @OA\Property(property="name", type="string", example="ST MARYS SECONDARY SCHOOL"),
- *                 @OA\Property(property="email", type="string", format="email", example="stmaryschool@gmail.com"),
- *                 @OA\Property(property="province", type="string", example="Lagos Province 2"),
- *                 @OA\Property(property="state", type="string", example="Lagos"),
- *                 @OA\Property(property="lga", type="string", example="Alimosho"),
- *
- *                 @OA\Property(property="latitude", type="number", format="float", example=6.5244),
- *                 @OA\Property(property="longitude", type="number", format="float", example=3.3792),
- *
- *                 @OA\Property(property="address", type="string", example="12 Ipaja road, Lagos"),
- *                 @OA\Property(property="contact_number", type="string", example="+2348012345678"),
- *
- *                 @OA\Property(
- *                     property="class_categories[]",
- *                     type="array",
- *                     @OA\Items(type="string"),
- *                     example={"Primary","Junior Secondary","Senior Secondary"}
- *                 ),
- *
- *                 @OA\Property(
- *                     property="subjects_offered[]",
- *                     type="array",
- *                     @OA\Items(type="string"),
- *                     example={"Mathematics","English","Physics","Chemistry"}
- *                 ),
- *
- *                 @OA\Property(property="latest_news", type="string", example="School resumes fully on Monday"),
- *
- *                 @OA\Property(
- *                     property="logo",
- *                     type="string",
- *                     format="binary",
- *                     description="School logo image (png, jpg, jpeg)"
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="School profile updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="School profile updated successfully"),
- *             @OA\Property(property="school", type="object")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=403,
- *         description="No school linked to this account",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="No school linked to this account")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The email has already been taken."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/v1/schools/update",
+     *     operationId="updateSchoolProfile",
+     *     summary="Update School Profile",
+     *     description="Partially update the school profile linked to the authenticated school admin. All fields are optional. Requires JWT authentication.",
+     *     tags={"School"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 type="object",
+     *
+     *                 @OA\Property(property="name", type="string", example="ST MARYS SECONDARY SCHOOL"),
+     *                 @OA\Property(property="email", type="string", format="email", example="stmaryschool@gmail.com"),
+     *                 @OA\Property(property="province", type="string", example="Lagos Province 2"),
+     *                 @OA\Property(property="state", type="string", example="Lagos"),
+     *                 @OA\Property(property="lga", type="string", example="Alimosho"),
+     *
+     *                 @OA\Property(property="latitude", type="number", format="float", example=6.5244),
+     *                 @OA\Property(property="longitude", type="number", format="float", example=3.3792),
+     *
+     *                 @OA\Property(property="address", type="string", example="12 Ipaja road, Lagos"),
+     *                 @OA\Property(property="contact_number", type="string", example="+2348012345678"),
+     *
+     *                 @OA\Property(
+     *                     property="class_categories[]",
+     *                     type="array",
+     *                     @OA\Items(type="string"),
+     *                     example={"Primary","Junior Secondary","Senior Secondary"}
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="subjects_offered[]",
+     *                     type="array",
+     *                     @OA\Items(type="string"),
+     *                     example={"Mathematics","English","Physics","Chemistry"}
+     *                 ),
+     *
+     *                 @OA\Property(property="latest_news", type="string", example="School resumes fully on Monday"),
+     *
+     *                 @OA\Property(
+     *                     property="logo",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="School logo image (png, jpg, jpeg)"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="School profile updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="School profile updated successfully"),
+     *             @OA\Property(property="school", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="No school linked to this account",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="No school linked to this account")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The email has already been taken."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
 
 
-public function updateSchool(Request $request)
-{
-    $school = auth()->user()->school;
+    public function updateSchool(Request $request)
+    {
+        $school = auth()->user()->school;
 
-    if (!$school) {
-        return response()->json([
-            'message' => 'No school linked to this account'
-        ], 403);
-    }
-
-    // Validate arrays properly
-    $validated = $request->validate([
-        'name' => ['sometimes','string', Rule::unique('schools', 'name')->ignore($school->id)],
-        'email' => ['sometimes','email', Rule::unique('schools', 'email')->ignore($school->id)],
-        'province' => 'sometimes|string',
-        'state' => 'sometimes|string',
-        'lga' => 'sometimes|string',
-        'latitude' => 'nullable|numeric',
-        'longitude' => 'nullable|numeric',
-        'address' => 'nullable|string',
-        'contact_number' => 'nullable|string',
-        'class_categories' => 'nullable|array',
-        'class_categories.*' => 'string',
-        'subjects_offered' => 'nullable|array',
-        'subjects_offered.*' => 'string',
-        'latest_news' => 'nullable|string',
-        'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-    ]);
-
-    // Handle logo
-    if ($request->hasFile('logo')) {
-        if ($school->logo && File::exists(public_path($school->logo))) {
-            File::delete(public_path($school->logo));
+        if (!$school) {
+            return response()->json([
+                'message' => 'No school linked to this account'
+            ], 403);
         }
-        $logo = $request->file('logo');
-        $fileName = time() . '_' . Str::random(8) . '.' . $logo->getClientOriginalExtension();
-        $logo->move(public_path('uploads/school'), $fileName);
-        $validated['logo'] = 'uploads/school/' . $fileName;
+
+        // Validate arrays properly
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', Rule::unique('schools', 'name')->ignore($school->id)],
+            'email' => ['sometimes', 'email', Rule::unique('schools', 'email')->ignore($school->id)],
+            'province' => 'sometimes|string',
+            'state' => 'sometimes|string',
+            'lga' => 'sometimes|string',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'address' => 'nullable|string',
+            'contact_number' => 'nullable|string',
+            'class_categories' => 'nullable|array',
+            'class_categories.*' => 'string',
+            'subjects_offered' => 'nullable|array',
+            'subjects_offered.*' => 'string',
+            'latest_news' => 'nullable|string',
+            'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+        ]);
+
+        // Handle logo
+        if ($request->hasFile('logo')) {
+            if ($school->logo && File::exists(public_path($school->logo))) {
+                File::delete(public_path($school->logo));
+            }
+            $logo = $request->file('logo');
+            $fileName = time() . '_' . Str::random(8) . '.' . $logo->getClientOriginalExtension();
+            $logo->move(public_path('uploads/school'), $fileName);
+            $validated['logo'] = 'uploads/school/' . $fileName;
+        }
+
+        $school->update($validated);
+        $school->refresh(); // ensures casted arrays show correctly
+
+        return response()->json([
+            'message' => 'School profile updated successfully',
+            'school' => $school
+        ]);
     }
 
-    $school->update($validated);
-    $school->refresh(); // ensures casted arrays show correctly
 
-    return response()->json([
-        'message' => 'School profile updated successfully',
-        'school' => $school
-    ]);
-}
+    /**
+     * Create a new learner and user account
+     *
+     * @OA\Post(
+     *     path="/api/v1/createLearners",
+     *     operationId="createLearner",
+     *     summary="Register a new learner",
+     *     description="Allows school admin to create learners. A user account is automatically created.",
+     *     tags={"Learner"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="surname", type="string", example="Doe"),
+     *             @OA\Property(property="first_name", type="string", example="John"),
+     *             @OA\Property(property="middle_name", type="string", example="Michael"),
+     *             @OA\Property(property="dob", type="string", format="date", example="2010-05-15"),
+     *             @OA\Property(property="religion", type="string", example="Christianity"),
+     *             @OA\Property(property="residential_address", type="string", example="12 Ipaja Road, Lagos"),
+     *             @OA\Property(property="state_of_origin", type="string", example="Lagos"),
+     *             @OA\Property(property="lga_of_origin", type="string", example="Alimosho"),
+     *             @OA\Property(property="previous_class", type="string", example="Primary 5"),
+     *             @OA\Property(property="present_class", type="string", example="Primary 6"),
+     *             @OA\Property(property="nin", type="string", example="12345678901"),
+     *             @OA\Property(property="parent_name", type="string", example="Jane Doe"),
+     *             @OA\Property(property="parent_relationship", type="string", example="Mother"),
+     *             @OA\Property(property="parent_phone", type="string", example="+2348012345678"),
+     *             @OA\Property(property="photo", type="string", format="binary", description="Learner photo")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Learner created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Learner created successfully"),
+     *             @OA\Property(property="learner", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
+     */
+    public function createLearners(Request $request)
+    {
+        $school = auth()->user()->school;
+
+        if (!$school) {
+            return response()->json([
+                'message' => 'No school linked to this account'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'surname' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'dob' => 'required|date',
+            'religion' => 'nullable|string|max:100',
+            'residential_address' => 'nullable|string|max:255',
+            'state_of_origin' => 'nullable|string|max:100',
+            'lga_of_origin' => 'nullable|string|max:100',
+            'previous_class' => 'nullable|string|max:50',
+            'present_class' => 'required|string|max:50',
+            'nin' => 'nullable|string|max:20|unique:learners,nin',
+            'parent_name' => 'nullable|string|max:255',
+            'parent_relationship' => 'nullable|string|max:100',
+            'parent_phone' => 'nullable|string|max:20',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        // Handle photo
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            $fileName = time() . '_' . Str::random(8) . '.' . $photo->getClientOriginalExtension();
+            $photo->move(public_path('uploads/learners'), $fileName);
+            $validated['photo'] = 'uploads/learners/' . $fileName;
+        }
+
+        // Create learner
+        $learner = $school->learners()->create($validated);
+
+        // Create user account for learner
+        $user = User::create([
+            'name' => $validated['first_name'] . ' ' . ($validated['middle_name'] ?? '') . ' ' . $validated['surname'],
+            'email' => $validated['nin'] ? $validated['nin'] . '@school.com' : Str::random(8) . '@school.com',
+            'password' => Hash::make('password123'), // default password, can be updated later
+            'role' => 'learner',
+            'school_id' => $school->id,
+            'learner_id' => $learner->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Learner created successfully',
+            'learner' => $learner,
+            'user' => $user
+        ], 201);
+    }
 
 
 }

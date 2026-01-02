@@ -53,7 +53,7 @@ Route::prefix('v1')->group(function () {
         // School Admin
         Route::middleware(['role:school_admin'])->group(function () {
              Route::post('/schools/update', [ApiController::class, 'updateSchool']);
-            Route::post('/learners', [ApiController::class, 'store']);
+            Route::post('/create/learners', [ApiController::class, 'createLearners']);
             Route::get('/learners', [ApiController::class, 'index']);
         });
 
