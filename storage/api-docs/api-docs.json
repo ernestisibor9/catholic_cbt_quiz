@@ -131,7 +131,7 @@
         "/api/v1/create/dioceses": {
             "post": {
                 "tags": [
-                    "Diocese"
+                    "Api"
                 ],
                 "summary": "Create a new Diocese",
                 "description": "Create a diocese and assign a diocesan admin. Requires JWT authentication.",
@@ -444,7 +444,7 @@
         "/api/v1/dioceses/update": {
             "post": {
                 "tags": [
-                    "Diocese"
+                    "Api"
                 ],
                 "summary": "Update Diocese Profile",
                 "description": "Partially update the profile of the diocese linked to the authenticated user. Fields are optional. Requires JWT authentication.",
@@ -952,36 +952,43 @@
                 ]
             }
         },
-        "/api/v1/createLearners": {
+        "/api/v1/create/learners": {
             "post": {
                 "tags": [
                     "Learner"
                 ],
                 "summary": "Register a new learner",
-                "description": "Allows school admin to create learners. A user account is automatically created.",
-                "operationId": "createLearner",
+                "description": "Allows a school admin to create a learner and automatically generates a learner user account using the provided email.",
+                "operationId": "createLearners",
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
+                                "required": [
+                                    "surname",
+                                    "first_name",
+                                    "dob",
+                                    "present_class",
+                                    "email"
+                                ],
                                 "properties": {
                                     "surname": {
                                         "type": "string",
-                                        "example": "Doe"
+                                        "example": "Isibor"
                                     },
                                     "first_name": {
                                         "type": "string",
-                                        "example": "John"
+                                        "example": "Ernest"
                                     },
                                     "middle_name": {
                                         "type": "string",
-                                        "example": "Michael"
+                                        "example": ""
                                     },
                                     "dob": {
                                         "type": "string",
                                         "format": "date",
-                                        "example": "2010-05-15"
+                                        "example": "2012-05-14"
                                     },
                                     "religion": {
                                         "type": "string",
@@ -993,11 +1000,11 @@
                                     },
                                     "state_of_origin": {
                                         "type": "string",
-                                        "example": "Lagos"
+                                        "example": "Edo"
                                     },
                                     "lga_of_origin": {
                                         "type": "string",
-                                        "example": "Alimosho"
+                                        "example": "Oredo"
                                     },
                                     "previous_class": {
                                         "type": "string",
@@ -1007,24 +1014,31 @@
                                         "type": "string",
                                         "example": "Primary 6"
                                     },
+                                    "email": {
+                                        "description": "Learner email provided by the school",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "ernestisibor@gmail.com"
+                                    },
                                     "nin": {
+                                        "description": "Optional National Identification Number",
                                         "type": "string",
                                         "example": "12345678901"
                                     },
                                     "parent_name": {
                                         "type": "string",
-                                        "example": "Jane Doe"
+                                        "example": "Mr Isibor"
                                     },
                                     "parent_relationship": {
                                         "type": "string",
-                                        "example": "Mother"
+                                        "example": "Father"
                                     },
                                     "parent_phone": {
                                         "type": "string",
-                                        "example": "+2348012345678"
+                                        "example": "08012345678"
                                     },
                                     "photo": {
-                                        "description": "Learner photo",
+                                        "description": "Learner passport photograph",
                                         "type": "string",
                                         "format": "binary"
                                     }
@@ -1047,6 +1061,293 @@
                                         },
                                         "learner": {
                                             "type": "object"
+                                        },
+                                        "user": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "School not linked to account"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dioceses": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get all dioceses",
+                "description": "Retrieve all dioceses nationwide with their associated schools. Accessible only to Super Admin users.",
+                "operationId": "AllDioceses",
+                "responses": {
+                    "200": {
+                        "description": "Dioceses retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Lagos Archdiocese"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2024-01-10T08:30:00Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2024-01-10T08:30:00Z"
+                                                    },
+                                                    "schools": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer",
+                                                                    "example": 15
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "St. Mary's Secondary School"
+                                                                },
+                                                                "email": {
+                                                                    "type": "string",
+                                                                    "format": "email",
+                                                                    "example": "stmary@gmail.com"
+                                                                },
+                                                                "state": {
+                                                                    "type": "string",
+                                                                    "example": "Lagos"
+                                                                },
+                                                                "lga": {
+                                                                    "type": "string",
+                                                                    "example": "Ikeja"
+                                                                },
+                                                                "created_at": {
+                                                                    "type": "string",
+                                                                    "format": "date-time",
+                                                                    "example": "2024-02-01T10:00:00Z"
+                                                                },
+                                                                "updated_at": {
+                                                                    "type": "string",
+                                                                    "format": "date-time",
+                                                                    "example": "2024-02-01T10:00:00Z"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "You are not authorized to perform this action."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dioceses/{id}": {
+            "put": {
+                "tags": [
+                    "Diocese"
+                ],
+                "summary": "Update a Diocese",
+                "description": "Partially update a diocese by its ID. All fields are optional. Requires JWT authentication.",
+                "operationId": "updateDiocese",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the diocese to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Lagos Archdiocese"
+                                    },
+                                    "province": {
+                                        "type": "string",
+                                        "example": "Lagos Province 2"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    },
+                                    "lga": {
+                                        "type": "string",
+                                        "example": "Ikeja"
+                                    },
+                                    "address": {
+                                        "type": "string",
+                                        "example": "12 Church Street, Lagos"
+                                    },
+                                    "contact_number": {
+                                        "type": "string",
+                                        "example": "+2348012345678"
+                                    },
+                                    "education_secretary": {
+                                        "type": "string",
+                                        "example": "Mr. John Doe"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Diocese updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diocese updated successfully"
+                                        },
+                                        "diocese": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "Lagos Archdiocese"
+                                                },
+                                                "province": {
+                                                    "type": "string",
+                                                    "example": "Lagos Province 2"
+                                                },
+                                                "state": {
+                                                    "type": "string",
+                                                    "example": "Lagos"
+                                                },
+                                                "lga": {
+                                                    "type": "string",
+                                                    "example": "Ikeja"
+                                                },
+                                                "address": {
+                                                    "type": "string",
+                                                    "example": "12 Church Street, Lagos"
+                                                },
+                                                "contact_number": {
+                                                    "type": "string",
+                                                    "example": "+2348012345678"
+                                                },
+                                                "education_secretary": {
+                                                    "type": "string",
+                                                    "example": "Mr. John Doe"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2024-01-10T08:30:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2024-01-10T09:30:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Diocese not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diocese not found"
                                         }
                                     },
                                     "type": "object"
@@ -1055,7 +1356,344 @@
                         }
                     },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The name has already been taken."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Delete a Diocese",
+                "description": "Deletes a diocese by its ID. Requires JWT authentication.",
+                "operationId": "deleteDiocese",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the diocese to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Diocese deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diocese deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Diocese not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Diocese not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/get/all/dioceses": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get all dioceses with schools and learners",
+                "description": "Fetches all dioceses nationwide including their schools and learners. Accessible by Super Admin.",
+                "operationId": "getAllDioceses",
+                "responses": {
+                    "200": {
+                        "description": "List of dioceses retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Catholic Diocese of Lagos"
+                                                    },
+                                                    "province": {
+                                                        "type": "string",
+                                                        "example": "Lagos Province"
+                                                    },
+                                                    "state": {
+                                                        "type": "string",
+                                                        "example": "Lagos"
+                                                    },
+                                                    "lga": {
+                                                        "type": "string",
+                                                        "example": "Ikeja"
+                                                    },
+                                                    "schools": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer",
+                                                                    "example": 10
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "St. Mary's Secondary School"
+                                                                },
+                                                                "learners": {
+                                                                    "type": "array",
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "id": {
+                                                                                "type": "integer",
+                                                                                "example": 100
+                                                                            },
+                                                                            "first_name": {
+                                                                                "type": "string",
+                                                                                "example": "John"
+                                                                            },
+                                                                            "last_name": {
+                                                                                "type": "string",
+                                                                                "example": "Doe"
+                                                                            }
+                                                                        },
+                                                                        "type": "object"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dioceses/{dioceseId}/schools": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get schools by diocese",
+                "description": "Fetches all schools belonging to a specific diocese, including their learners.",
+                "operationId": "getSchoolsByDiocese",
+                "parameters": [
+                    {
+                        "name": "dioceseId",
+                        "in": "path",
+                        "description": "ID of the diocese",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Schools retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "St Mary's Secondary School"
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "stmaryschool@gmail.com"
+                                                    },
+                                                    "state": {
+                                                        "type": "string",
+                                                        "example": "Lagos"
+                                                    },
+                                                    "lga": {
+                                                        "type": "string",
+                                                        "example": "Alimosho"
+                                                    },
+                                                    "learners": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer",
+                                                                    "example": 101
+                                                                },
+                                                                "first_name": {
+                                                                    "type": "string",
+                                                                    "example": "John"
+                                                                },
+                                                                "last_name": {
+                                                                    "type": "string",
+                                                                    "example": "Doe"
+                                                                },
+                                                                "class": {
+                                                                    "type": "string",
+                                                                    "example": "SS 2"
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Diocese not found"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/delete/schools/{id}": {
+            "delete": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Delete a school",
+                "description": "Deletes a school and all related learners and user accounts. This action is irreversible.",
+                "operationId": "deleteSchoolAdmin",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the school to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 5
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "School and learners deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School and learners deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "School not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
                     }
                 },
                 "security": [
@@ -1082,8 +1720,8 @@
             "description": "Authentication"
         },
         {
-            "name": "Diocese",
-            "description": "Diocese"
+            "name": "Api",
+            "description": "Api"
         },
         {
             "name": "School",
@@ -1092,6 +1730,10 @@
         {
             "name": "Learner",
             "description": "Learner"
+        },
+        {
+            "name": "Diocese",
+            "description": "Diocese"
         }
     ]
 }

@@ -40,7 +40,14 @@ Route::prefix('v1')->group(function () {
         // Super Admin
         Route::middleware(['role:super_admin'])->group(function () {
             Route::post('/create/dioceses', [ApiController::class, 'createDioceses']);
-            Route::get('/dioceses', [ApiController::class, 'index']);
+            Route::get('/dioceses', [ApiController::class, 'allDioceses']);
+            Route::get('/get/all/dioceses', [ApiController::class, 'getAllDioceses']);
+            Route::get('/dioceses/{id}/schools', [ApiController::class, 'getSchoolsByDiocese']);
+            Route::delete('/delete/schools/{id}', [ApiController::class, 'deleteSchool']);
+
+            // Update & Delete
+            Route::put('/dioceses/{id}', [ApiController::class, 'updateDiocese']);
+            Route::delete('/dioceses/{id}', [ApiController::class, 'deleteDiocese']);
         });
 
         // Diocesan Admin
@@ -50,9 +57,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/schools', [ApiController::class, 'index']);
         });
 
-        // School Admin..
+        // School Admin.
         Route::middleware(['role:school_admin'])->group(function () {
-             Route::post('/schools/update', [ApiController::class, 'updateSchool']);
+            Route::post('/schools/update', [ApiController::class, 'updateSchool']);
             Route::post('/create/learners', [ApiController::class, 'createLearners']);
             Route::get('/learners', [ApiController::class, 'index']);
         });

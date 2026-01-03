@@ -9,7 +9,7 @@ class Diocese extends Model
 {
     use HasFactory;
 
-        protected $fillable = [
+    protected $fillable = [
         'name',
         'province',
         'state',
@@ -24,5 +24,10 @@ class Diocese extends Model
     public function schools()
     {
         return $this->hasMany(School::class);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class);
     }
 }

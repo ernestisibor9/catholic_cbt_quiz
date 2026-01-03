@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use App\Mail\DioceseAccountMail;
 use App\Mail\DioceseVerifyMail;
 use App\Models\School;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
 
@@ -140,7 +141,7 @@ class ApiController extends Controller
      *     path="/api/v1/create/dioceses",
      *     summary="Create a new Diocese",
      *     description="Create a diocese and assign a diocesan admin. Requires JWT authentication.",
-     *     tags={"Diocese"},
+     *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\RequestBody(
@@ -438,7 +439,7 @@ class ApiController extends Controller
      *     operationId="updateDioceseProfile",
      *     summary="Update Diocese Profile",
      *     description="Partially update the profile of the diocese linked to the authenticated user. Fields are optional. Requires JWT authentication.",
-     *     tags={"Diocese"},
+     *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\RequestBody(
@@ -918,32 +919,57 @@ class ApiController extends Controller
      * Create a new learner and user account
      *
      * @OA\Post(
-     *     path="/api/v1/createLearners",
-     *     operationId="createLearner",
+     *     path="/api/v1/create/learners",
+     *     operationId="createLearners",
      *     summary="Register a new learner",
-     *     description="Allows school admin to create learners. A user account is automatically created.",
+     *     description="Allows a school admin to create a learner and automatically generates a learner user account using the provided email.",
      *     tags={"Learner"},
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="surname", type="string", example="Doe"),
-     *             @OA\Property(property="first_name", type="string", example="John"),
-     *             @OA\Property(property="middle_name", type="string", example="Michael"),
-     *             @OA\Property(property="dob", type="string", format="date", example="2010-05-15"),
-     *             @OA\Property(property="religion", type="string", example="Christianity"),
-     *             @OA\Property(property="residential_address", type="string", example="12 Ipaja Road, Lagos"),
-     *             @OA\Property(property="state_of_origin", type="string", example="Lagos"),
-     *             @OA\Property(property="lga_of_origin", type="string", example="Alimosho"),
-     *             @OA\Property(property="previous_class", type="string", example="Primary 5"),
-     *             @OA\Property(property="present_class", type="string", example="Primary 6"),
-     *             @OA\Property(property="nin", type="string", example="12345678901"),
-     *             @OA\Property(property="parent_name", type="string", example="Jane Doe"),
-     *             @OA\Property(property="parent_relationship", type="string", example="Mother"),
-     *             @OA\Property(property="parent_phone", type="string", example="+2348012345678"),
-     *             @OA\Property(property="photo", type="string", format="binary", description="Learner photo")
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"surname","first_name","dob","present_class","email"},
+     *
+     *                 @OA\Property(property="surname", type="string", example="Isibor"),
+     *                 @OA\Property(property="first_name", type="string", example="Ernest"),
+     *                 @OA\Property(property="middle_name", type="string", example=""),
+     *                 @OA\Property(property="dob", type="string", format="date", example="2012-05-14"),
+     *                 @OA\Property(property="religion", type="string", example="Christianity"),
+     *                 @OA\Property(property="residential_address", type="string", example="12 Ipaja Road, Lagos"),
+     *                 @OA\Property(property="state_of_origin", type="string", example="Edo"),
+     *                 @OA\Property(property="lga_of_origin", type="string", example="Oredo"),
+     *                 @OA\Property(property="previous_class", type="string", example="Primary 5"),
+     *                 @OA\Property(property="present_class", type="string", example="Primary 6"),
+     *
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="string",
+     *                     format="email",
+     *                     example="ernestisibor@gmail.com",
+     *                     description="Learner email provided by the school"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="nin",
+     *                     type="string",
+     *                     example="12345678901",
+     *                     description="Optional National Identification Number"
+     *                 ),
+     *
+     *                 @OA\Property(property="parent_name", type="string", example="Mr Isibor"),
+     *                 @OA\Property(property="parent_relationship", type="string", example="Father"),
+     *                 @OA\Property(property="parent_phone", type="string", example="08012345678"),
+     *
+     *                 @OA\Property(
+     *                     property="photo",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="Learner passport photograph"
+     *                 )
+     *             )
      *         )
      *     ),
      *
@@ -952,8 +978,14 @@ class ApiController extends Controller
      *         description="Learner created successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Learner created successfully"),
-     *             @OA\Property(property="learner", type="object")
+     *             @OA\Property(property="learner", type="object"),
+     *             @OA\Property(property="user", type="object")
      *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="School not linked to account"
      *     ),
      *
      *     @OA\Response(
@@ -962,6 +994,8 @@ class ApiController extends Controller
      *     )
      * )
      */
+
+
     public function createLearners(Request $request)
     {
         $school = auth()->user()->school;
@@ -983,14 +1017,20 @@ class ApiController extends Controller
             'lga_of_origin' => 'nullable|string|max:100',
             'previous_class' => 'nullable|string|max:50',
             'present_class' => 'required|string|max:50',
+
+            // ✅ Email entered by school
+            'email' => 'required|email|unique:users,email',
+
+            // Optional NIN (no longer used for email)
             'nin' => 'nullable|string|max:20|unique:learners,nin',
+
             'parent_name' => 'nullable|string|max:255',
             'parent_relationship' => 'nullable|string|max:100',
             'parent_phone' => 'nullable|string|max:20',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Handle photo
+        // Handle photo upload
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             $fileName = time() . '_' . Str::random(8) . '.' . $photo->getClientOriginalExtension();
@@ -998,14 +1038,18 @@ class ApiController extends Controller
             $validated['photo'] = 'uploads/learners/' . $fileName;
         }
 
-        // Create learner
+        // Create learner record
         $learner = $school->learners()->create($validated);
 
-        // Create user account for learner
+        // Create learner login account
         $user = User::create([
-            'name' => $validated['first_name'] . ' ' . ($validated['middle_name'] ?? '') . ' ' . $validated['surname'],
-            'email' => $validated['nin'] ? $validated['nin'] . '@school.com' : Str::random(8) . '@school.com',
-            'password' => Hash::make('password123'), // default password, can be updated later
+            'name' => trim(
+                $validated['first_name'] . ' ' .
+                ($validated['middle_name'] ?? '') . ' ' .
+                $validated['surname']
+            ),
+            'email' => $validated['email'], // ✅ use entered email
+            'password' => Hash::make('123456'), // default password
             'role' => 'learner',
             'school_id' => $school->id,
             'learner_id' => $learner->id,
@@ -1017,6 +1061,481 @@ class ApiController extends Controller
             'user' => $user
         ], 201);
     }
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/dioceses",
+     *     operationId="AllDioceses",
+     *     summary="Get all dioceses",
+     *     description="Retrieve all dioceses nationwide with their associated schools. Accessible only to Super Admin users.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dioceses retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Lagos Archdiocese"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-10T08:30:00Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-10T08:30:00Z"),
+     *
+     *                     @OA\Property(
+     *                         property="schools",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="integer", example=15),
+     *                             @OA\Property(property="name", type="string", example="St. Mary's Secondary School"),
+     *                             @OA\Property(property="email", type="string", format="email", example="stmary@gmail.com"),
+     *                             @OA\Property(property="state", type="string", example="Lagos"),
+     *                             @OA\Property(property="lga", type="string", example="Ikeja"),
+     *                             @OA\Property(property="created_at", type="string", format="date-time", example="2024-02-01T10:00:00Z"),
+     *                             @OA\Property(property="updated_at", type="string", format="date-time", example="2024-02-01T10:00:00Z")
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized access",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="You are not authorized to perform this action.")
+     *         )
+     *     )
+     * )
+     */
+
+    public function allDioceses()
+    {
+        // Super admin sees ALL dioceses nationwide
+        $dioceses = Diocese::with('schools')->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => $dioceses
+        ]);
+    }
+
+
+
+    /**
+     * @OA\Put(
+     *     path="/api/v1/dioceses/{id}",
+     *     operationId="updateDiocese",
+     *     summary="Update a Diocese",
+     *     description="Partially update a diocese by its ID. All fields are optional. Requires JWT authentication.",
+     *     tags={"Diocese"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the diocese to update",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(property="name", type="string", example="Lagos Archdiocese"),
+     *                 @OA\Property(property="province", type="string", example="Lagos Province 2"),
+     *                 @OA\Property(property="state", type="string", example="Lagos"),
+     *                 @OA\Property(property="lga", type="string", example="Ikeja"),
+     *                 @OA\Property(property="address", type="string", example="12 Church Street, Lagos"),
+     *                 @OA\Property(property="contact_number", type="string", example="+2348012345678"),
+     *                 @OA\Property(property="education_secretary", type="string", example="Mr. John Doe")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Diocese updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diocese updated successfully"),
+     *             @OA\Property(
+     *                 property="diocese",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Lagos Archdiocese"),
+     *                 @OA\Property(property="province", type="string", example="Lagos Province 2"),
+     *                 @OA\Property(property="state", type="string", example="Lagos"),
+     *                 @OA\Property(property="lga", type="string", example="Ikeja"),
+     *                 @OA\Property(property="address", type="string", example="12 Church Street, Lagos"),
+     *                 @OA\Property(property="contact_number", type="string", example="+2348012345678"),
+     *                 @OA\Property(property="education_secretary", type="string", example="Mr. John Doe"),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-10T08:30:00Z"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-10T09:30:00Z")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diocese not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diocese not found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The name has already been taken."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+
+    public function updateDiocese(Request $request, $id)
+    {
+        $diocese = Diocese::find($id);
+
+        if (!$diocese) {
+            return response()->json([
+                'message' => 'Diocese not found'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|unique:dioceses,name,' . $diocese->id,
+            'province' => 'sometimes|string',
+            'state' => 'sometimes|string',
+            'lga' => 'sometimes|string',
+            'address' => 'nullable|string',
+            'contact_number' => 'nullable|string',
+            'education_secretary' => 'sometimes|string',
+        ]);
+
+        $diocese->update($validated);
+
+        return response()->json([
+            'message' => 'Diocese updated successfully',
+            'diocese' => $diocese
+        ]);
+    }
+
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/dioceses/{id}",
+     *     operationId="deleteDiocese",
+     *     summary="Delete a Diocese",
+     *     description="Deletes a diocese by its ID. Requires JWT authentication.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the diocese to delete",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Diocese deleted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diocese deleted successfully")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diocese not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Diocese not found")
+     *         )
+     *     )
+     * )
+     */
+
+    public function deleteDiocese($id)
+    {
+        $diocese = Diocese::find($id);
+
+        if (!$diocese) {
+            return response()->json([
+                'message' => 'Diocese not found'
+            ], 404);
+        }
+
+        DB::transaction(function () use ($diocese) {
+
+            // 1️⃣ Delete all users attached directly to this diocese
+            User::where('diocese_id', $diocese->id)->delete();
+
+            // 2️⃣ Delete schools and their users (if applicable)
+            foreach ($diocese->schools as $school) {
+                User::where('school_id', $school->id)->delete();
+                $school->delete();
+            }
+
+            // 3️⃣ Finally delete the diocese
+            $diocese->delete();
+        });
+
+        return response()->json([
+            'message' => 'Diocese and related users deleted successfully'
+        ], 200);
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/get/all/dioceses",
+     *     operationId="getAllDioceses",
+     *     summary="Get all dioceses with schools and learners",
+     *     description="Fetches all dioceses nationwide including their schools and learners. Accessible by Super Admin.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of dioceses retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Catholic Diocese of Lagos"),
+     *                     @OA\Property(property="province", type="string", example="Lagos Province"),
+     *                     @OA\Property(property="state", type="string", example="Lagos"),
+     *                     @OA\Property(property="lga", type="string", example="Ikeja"),
+     *
+     *                     @OA\Property(
+     *                         property="schools",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="integer", example=10),
+     *                             @OA\Property(property="name", type="string", example="St. Mary's Secondary School"),
+     *
+     *                             @OA\Property(
+     *                                 property="learners",
+     *                                 type="array",
+     *                                 @OA\Items(
+     *                                     type="object",
+     *                                     @OA\Property(property="id", type="integer", example=100),
+     *                                     @OA\Property(property="first_name", type="string", example="John"),
+     *                                     @OA\Property(property="last_name", type="string", example="Doe")
+     *                                 )
+     *                             )
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
+
+    public function getAllDioceses()
+    {
+        $dioceses = Diocese::with('schools.learners')->get();
+
+        return response()->json([
+            'data' => $dioceses
+        ]);
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/dioceses/{dioceseId}/schools",
+     *     operationId="getSchoolsByDiocese",
+     *     summary="Get schools by diocese",
+     *     description="Fetches all schools belonging to a specific diocese, including their learners.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="dioceseId",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the diocese",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Schools retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=10),
+     *                     @OA\Property(property="name", type="string", example="St Mary's Secondary School"),
+     *                     @OA\Property(property="email", type="string", example="stmaryschool@gmail.com"),
+     *                     @OA\Property(property="state", type="string", example="Lagos"),
+     *                     @OA\Property(property="lga", type="string", example="Alimosho"),
+     *
+     *                     @OA\Property(
+     *                         property="learners",
+     *                         type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="id", type="integer", example=101),
+     *                             @OA\Property(property="first_name", type="string", example="John"),
+     *                             @OA\Property(property="last_name", type="string", example="Doe"),
+     *                             @OA\Property(property="class", type="string", example="SS 2")
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diocese not found"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
+
+
+    public function getSchoolsByDiocese($dioceseId)
+    {
+        $schools = School::where('diocese_id', $dioceseId)
+            ->with('learners')
+            ->get();
+
+        return response()->json([
+            'data' => $schools
+        ]);
+    }
+
+
+    /**
+ * @OA\Delete(
+ *     path="/api/v1/delete/schools/{id}",
+ *     operationId="deleteSchoolAdmin",
+ *     summary="Delete a school",
+ *     description="Deletes a school and all related learners and user accounts. This action is irreversible.",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID of the school to delete",
+ *         @OA\Schema(type="integer", example=5)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="School and learners deleted successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="School and learners deleted successfully"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="School not found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="School not found"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden"
+ *     )
+ * )
+ */
+
+    public function deleteSchool($id)
+{
+    $school = School::find($id);
+
+    if (!$school) {
+        return response()->json(['message' => 'School not found'], 404);
+    }
+
+    DB::transaction(function () use ($school) {
+
+        // Delete learners' users
+        User::whereIn(
+            'learner_id',
+            $school->learners->pluck('id')
+        )->delete();
+
+        // Delete learners
+        $school->learners()->delete();
+
+        // Delete school admin user
+        User::where('school_id', $school->id)->delete();
+
+        // Delete school
+        $school->delete();
+    });
+
+    return response()->json([
+        'message' => 'School and learners deleted successfully'
+    ]);
+}
+
 
 
 }
