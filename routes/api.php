@@ -37,31 +37,84 @@ Route::prefix('v1')->group(function () {
     // Protected routes
     Route::middleware(['auth:api', 'throttle:60,1'])->group(function () {
 
+        Route::post('/change-password', [ApiController::class, 'changePassword']);
+
         // Super Admin
         Route::middleware(['role:super_admin'])->group(function () {
+            Route::get('/dioceses/total', [ApiController::class, 'getTotalDioceses']);
+            Route::get('/dioceses/filter', [ApiController::class, 'filterDiocesesByStateAndLga']);
+            Route::get('/super-admin/schools/filter', [ApiController::class, 'filterSchoolsByDiocese']);
+            Route::get('/super-admin/schools/search', [ApiController::class, 'searchSchoolsByName']);
+            Route::get('/super-admin/dioceses/filter-by-date', [ApiController::class, 'filterDiocesesByDate']);
+            Route::get('/super-admin/schools/filter-by-date', [ApiController::class, 'filterSchoolsByDate']);
+            Route::get('/super-admin/students', [ApiController::class, 'getAllStudents']);
+            Route::get('/super-admin/search', [ApiController::class, 'globalSearch']);
+            Route::get('/schools/total', [ApiController::class, 'getTotalSchools']);
+            Route::get('/learners/total', [ApiController::class, 'getTotalLearners']);
+            Route::get('/get/all/dioceses', [ApiController::class, 'getAllDiocesesSuper']);
             Route::post('/create/dioceses', [ApiController::class, 'createDioceses']);
             Route::get('/dioceses', [ApiController::class, 'allDioceses']);
-            Route::get('/get/all/dioceses', [ApiController::class, 'getAllDioceses']);
+            // Route::get('/get/all/dioceses', [ApiController::class, 'getAllDioceses']);
             Route::get('/dioceses/{id}/schools', [ApiController::class, 'getSchoolsByDiocese']);
             Route::delete('/delete/schools/{id}', [ApiController::class, 'deleteSchool']);
-
-            // Update & Delete
             Route::put('/dioceses/{id}', [ApiController::class, 'updateDiocese']);
-            Route::delete('/dioceses/{id}', [ApiController::class, 'deleteDiocese']);
+            Route::get('/dioceses/{id}', [ApiController::class, 'deleteDiocese']);
+            Route::get('/dioceses/{id}/schools/count', [ApiController::class, 'getTotalSchoolsDiocese']);
+            Route::get('/dioceses/{id}/details', [ApiController::class, 'getDioceseDetails']);
+            Route::get('/get/learners/{id}', [ApiController::class, 'getSingleLearnerSuperAdmin']);
+            Route::get('/get/schools/{id}', [ApiController::class, 'getSingleSchoolSuperAdmin']);
+            Route::put('/update/dioceses/{id}', [ApiController::class, 'updateDioceseSuperAdmin']);
+
+
         });
 
         // Diocesan Admin
         Route::middleware(['role:diocesan_admin'])->group(function () {
             Route::post('/dioceses/update', [ApiController::class, 'updateDioceses']);
             Route::post('/create/schools', [ApiController::class, 'createSchools']);
+            Route::get('/user/diocese-id', [ApiController::class, 'getAuthenticatedUserDioceseId']);
+            Route::post('/create/education-secretary', [ApiController::class, 'createEducationSecretary']);
+            Route::get('/diocese/schools/total', [ApiController::class, 'getTotalSchoolsForDiocesanAdmin']);
+            Route::get('/diocese/schools/learners', [ApiController::class, 'getSchoolsAndLearnersForDiocese']);
+            Route::get('/diocesan-admin/schools/search', [ApiController::class, 'searchSchoolsForDiocesanAdmin']);
+            Route::get('/diocesan-admin/schools/filter', [ApiController::class, 'filterSchoolsByStateAndLga']);
+            Route::get('/diocesan-admin/schools/filter-by-date', [ApiController::class, 'filterSchoolsByDateForDiocesanAdmin']);
+            Route::get('/diocesan-admin/students', [ApiController::class, 'getStudentsUnderDiocese']);
+            Route::get('/diocese/schools/{schoolId}', [ApiController::class, 'getSchoolInMyDiocese']);
+            Route::post('/schools/{schoolId}/update', [ApiController::class, 'updateSchoolByDiocese']);
+            Route::delete('/schools/{schoolId}/delete', [ApiController::class, 'deleteSchoolByDiocese']);
             Route::get('/schools', [ApiController::class, 'index']);
+            Route::get('/dioceses/{id}', [ApiController::class, 'getSingleDiocese']);
+
+            Route::put('/education-secretary/{id}/update', [ApiController::class, 'updateEducationSecretary']);
+
+            Route::get('/education-secretary/{id}', [ApiController::class, 'getEducationSecretaryById']);
+
         });
 
         // School Admin.
         Route::middleware(['role:school_admin'])->group(function () {
+            Route::get('/user/school-admin', [ApiController::class, 'getAuthenticatedSchoolAdmin']);
             Route::post('/schools/update', [ApiController::class, 'updateSchool']);
+            Route::get('/school-admin/dashboard', [ApiController::class, 'getSchoolAdminDashboard']);
             Route::post('/create/learners', [ApiController::class, 'createLearners']);
-            Route::get('/learners', [ApiController::class, 'index']);
+            Route::get('/school/learners', [ApiController::class, 'getLearnersForSchool']);
+            Route::get('/school-admin/students', [ApiController::class, 'filterStudentsForSchool']);
+            Route::get('/school-admin/students/lga-filter', [ApiController::class, 'filterStudentsForSchoolLga']);
+            Route::get('/school-admin/students/date-filter', [ApiController::class, 'filterStudentsForSchoolDate']);
+            Route::get('/school/learners/{learnerId}', [ApiController::class, 'showLearner']);
+            Route::post('/school/learners/{learnerId}/update', [ApiController::class, 'updateLearner']);
+            Route::delete('/school/learners/{learnerId}/delete', [ApiController::class, 'deleteLearner']);
+            Route::post('/school/learners/{learnerId}/reset-password', [ApiController::class, 'resetLearnerPassword']);
+            Route::get('/learners/{id}', [ApiController::class, 'getSingleLearner']);
+
+        });
+
+        // Learners
+        Route::middleware(['role:learner'])->group(function () {
+            Route::get('/user/learner-id', [ApiController::class, 'getAuthenticatedLearnerId']);
+            Route::get('/learner/profile', [ApiController::class, 'myLearnerProfile']);
+            Route::get('/learner/profile/dashboard', [ApiController::class, 'getLearnerProfile']);
         });
 
     });

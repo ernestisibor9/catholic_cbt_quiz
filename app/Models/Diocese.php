@@ -26,6 +26,24 @@ class Diocese extends Model
         return $this->hasMany(School::class);
     }
 
+    public function educationsecretary()
+    {
+        return $this->hasMany(EducationSecretary::class);
+    }
+
+    // Diocese has many Learners through Schools
+    public function learners()
+    {
+        return $this->hasManyThrough(
+            \App\Models\Learner::class, // final model
+            \App\Models\School::class,  // intermediate model
+            'diocese_id',                // Foreign key on schools table
+            'school_id',                 // Foreign key on learners table
+            'id',                        // Local key on dioceses table
+            'id'                         // Local key on schools table
+        );
+    }
+
     public function users()
     {
         return $this->hasMany(User::class);

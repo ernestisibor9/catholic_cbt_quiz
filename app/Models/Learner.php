@@ -9,7 +9,7 @@ class Learner extends Model
 {
     use HasFactory;
 
-        protected $fillable = [
+    protected $fillable = [
         'school_id',
         'surname',
         'first_name',
@@ -32,6 +32,11 @@ class Learner extends Model
     public function school()
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function diocese()
+    {
+        return $this->belongsTo(Diocese::class);
     }
 
     // Learner ➜ User
