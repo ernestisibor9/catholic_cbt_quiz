@@ -36,46 +36,46 @@ return new class extends Migration {
     }
 
 
-    public function update(Request $request)
-{
-    $diocese = auth()->user()->diocese;
+//     public function update(Request $request)
+// {
+//     $diocese = auth()->user()->diocese;
 
-    if (!$diocese) {
-        return response()->json([
-            'message' => 'No diocese linked to this account'
-        ], 403);
-    }
+//     if (!$diocese) {
+//         return response()->json([
+//             'message' => 'No diocese linked to this account'
+//         ], 403);
+//     }
 
-    $validated = $request->validate([
-        'province' => 'required|string',
-        'state' => 'required|string',
-        'lga' => 'required|string',
-        'address' => 'required|string',
-        'contact_number' => 'required|string',
-        'education_secretary' => 'nullable|string',
-        'latest_news' => 'nullable|string',
-        'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-    ]);
+//     $validated = $request->validate([
+//         'province' => 'required|string',
+//         'state' => 'required|string',
+//         'lga' => 'required|string',
+//         'address' => 'required|string',
+//         'contact_number' => 'required|string',
+//         'education_secretary' => 'nullable|string',
+//         'latest_news' => 'nullable|string',
+//         'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+//     ]);
 
-    /** Handle Logo Upload */
-    if ($request->hasFile('logo')) {
+//     /** Handle Logo Upload */
+//     if ($request->hasFile('logo')) {
 
-        // delete old logo if exists
-        if ($diocese->logo) {
-            Storage::disk('public')->delete($diocese->logo);
-        }
+//         // delete old logo if exists
+//         if ($diocese->logo) {
+//             Storage::disk('public')->delete($diocese->logo);
+//         }
 
-        $validated['logo'] = $request->file('logo')
-            ->store('diocese_logos', 'public');
-    }
+//         $validated['logo'] = $request->file('logo')
+//             ->store('diocese_logos', 'public');
+//     }
 
-    $diocese->update($validated);
+//     $diocese->update($validated);
 
-    return response()->json([
-        'message' => 'Diocese profile updated successfully',
-        'diocese' => $diocese
-    ]);
-}
+//     return response()->json([
+//         'message' => 'Diocese profile updated successfully',
+//         'diocese' => $diocese
+//     ]);
+// }
 
 
 };

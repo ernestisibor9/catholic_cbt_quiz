@@ -15,6 +15,7 @@ class Learner extends Model
         'first_name',
         'middle_name',
         'dob',
+        'session',
         'religion',
         'residential_address',
         'state_of_origin',

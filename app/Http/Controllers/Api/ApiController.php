@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
 
+
 /**
  * @OA\Info(
  *     version="1.0.0",
@@ -68,8 +69,8 @@ class ApiController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"email","password"},
-     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="secret123")
+     *             @OA\Property(property="email", type="string", format="email", example="superadmin@gmail.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="PassWord123!")
      *         )
      *     ),
      *     @OA\Response(
@@ -208,22 +209,103 @@ class ApiController extends Controller
      * )
      */
 
+    // public function createDioceses(Request $request)
+    // {
+    //     // 1. Validate input
+    //     $validated = $request->validate([
+    //         'name' => 'required|string',
+    //         'province' => 'required|string',
+    //         'state' => 'required|string',
+    //         'lga' => 'required|string',
+    //         'address' => 'required|string',
+    //         'contact_number' => 'required|string',
+    //         'email' => 'required|email|unique:users,email'
+    //     ]);
+
+    //     // 2. Create Diocese
+    //     $diocese = Diocese::create([
+    //         'name' => strtoupper($validated['name']),
+    //         'province' => $validated['province'],
+    //         'state' => $validated['state'],
+    //         'lga' => $validated['lga'],
+    //         'address' => $validated['address'],
+    //         'contact_number' => $validated['contact_number'],
+    //     ]);
+
+    //     // 3. Default password
+    //     $defaultPassword = '123456';
+
+    //     // 4. Create Diocesan Admin User
+    //     $user = User::create([
+    //         'name' => $validated['name'],
+    //         'email' => $validated['email'],
+    //         'password' => Hash::make($defaultPassword),
+    //         'role' => 'diocesan_admin',
+    //         'diocese_id' => $diocese->id,
+    //     ]);
+
+    //     // 5. Email verification
+    //     $token = Str::random(8);
+    //     Cache::put("email_verification_{$user->id}", $token, now()->addMinutes(60));
+
+    //     $verificationLink = rtrim(config('app.frontend_url'), '/') .
+    //         "/verify/{$user->id}/{$token}";
+
+    //     // 6. Prepare mail data
+    //     $mailData = [
+    //         'name' => $user->name,
+    //         'email' => $user->email,
+    //         'password' => $defaultPassword,
+    //         'link' => $verificationLink,
+    //     ];
+
+    //     // 7. Send mail
+    //     try {
+    //         Log::info('Sending diocese account mail to: ' . $user->email);
+    //         Mail::to($user->email)->send(new DioceseAccountMail($mailData));
+    //         Log::info('Mail sent successfully');
+    //     } catch (\Exception $e) {
+    //         Log::error('Diocese email failed: ' . $e->getMessage());
+    //     }
+
+    //     // 8. Response
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Diocese created and email sent to Diocese Admin',
+    //         'diocese' => $diocese,
+    //         'diocesan_admin' => [
+    //             'id' => $user->id,
+    //             'email' => $user->email,
+    //             'role' => $user->role
+    //         ]
+    //     ], 201);
+    // }
+
     public function createDioceses(Request $request)
     {
-        // 1. Validate input
         $validated = $request->validate([
-            'name' => 'required|string',
+            'name' => 'required|string|unique:dioceses,name',
             'province' => 'required|string',
             'state' => 'required|string',
             'lga' => 'required|string',
             'address' => 'required|string',
-            'contact_number' => 'required|string',
-            'email' => 'required|email|unique:users,email'
+            'contact_number' => 'required|string|unique:dioceses,contact_number',
+            'email' => 'required|email|unique:users,email',
         ]);
 
-        // 2. Create Diocese
+        // Normalize name (VERY important for uniqueness)
+        $dioceseName = strtoupper(trim($validated['name']));
+
+        // Extra safety check (optional but professional)
+        if (Diocese::where('name', $dioceseName)->exists()) {
+            return response()->json([
+                'message' => 'A diocese with this name already exists'
+            ], 422);
+        }
+
+        // Create Diocese
         $diocese = Diocese::create([
-            'name' => strtoupper($validated['name']),
+            'name' => $dioceseName,
             'province' => $validated['province'],
             'state' => $validated['state'],
             'lga' => $validated['lga'],
@@ -231,10 +313,10 @@ class ApiController extends Controller
             'contact_number' => $validated['contact_number'],
         ]);
 
-        // 3. Default password
+        // Default password
         $defaultPassword = '123456';
 
-        // 4. Create Diocesan Admin User
+        // Create Diocesan Admin
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -243,14 +325,13 @@ class ApiController extends Controller
             'diocese_id' => $diocese->id,
         ]);
 
-        // 5. Email verification
+        // Email verification
         $token = Str::random(8);
         Cache::put("email_verification_{$user->id}", $token, now()->addMinutes(60));
 
         $verificationLink = rtrim(config('app.frontend_url'), '/') .
             "/verify/{$user->id}/{$token}";
 
-        // 6. Prepare mail data
         $mailData = [
             'name' => $user->name,
             'email' => $user->email,
@@ -258,19 +339,15 @@ class ApiController extends Controller
             'link' => $verificationLink,
         ];
 
-        // 7. Send mail
         try {
-            Log::info('Sending diocese account mail to: ' . $user->email);
             Mail::to($user->email)->send(new DioceseAccountMail($mailData));
-            Log::info('Mail sent successfully');
         } catch (\Exception $e) {
             Log::error('Diocese email failed: ' . $e->getMessage());
         }
 
-        // 8. Response
         return response()->json([
             'status' => 'success',
-            'message' => 'Diocese created and email sent to Diocese Admin',
+            'message' => 'Diocese created successfully',
             'diocese' => $diocese,
             'diocesan_admin' => [
                 'id' => $user->id,
@@ -279,6 +356,7 @@ class ApiController extends Controller
             ]
         ], 201);
     }
+
 
 
 
@@ -931,21 +1009,103 @@ class ApiController extends Controller
      *
      *     @OA\RequestBody(
      *         required=true,
+     *         description="Learner registration payload",
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
      *             @OA\Schema(
-     *                 required={"surname","first_name","dob","present_class","email"},
+     *                 type="object",
+     *                 required={
+     *                     "surname",
+     *                     "first_name",
+     *                     "dob",
+     *                     "present_class",
+     *                     "session",
+     *                     "email"
+     *                 },
      *
-     *                 @OA\Property(property="surname", type="string", example="Isibor"),
-     *                 @OA\Property(property="first_name", type="string", example="Ernest"),
-     *                 @OA\Property(property="middle_name", type="string", example=""),
-     *                 @OA\Property(property="dob", type="string", format="date", example="2012-05-14"),
-     *                 @OA\Property(property="religion", type="string", example="Christianity"),
-     *                 @OA\Property(property="residential_address", type="string", example="12 Ipaja Road, Lagos"),
-     *                 @OA\Property(property="state_of_origin", type="string", example="Edo"),
-     *                 @OA\Property(property="lga_of_origin", type="string", example="Oredo"),
-     *                 @OA\Property(property="previous_class", type="string", example="Primary 5"),
-     *                 @OA\Property(property="present_class", type="string", example="Primary 6"),
+     *                 @OA\Property(
+     *                     property="surname",
+     *                     type="string",
+     *                     maxLength=255,
+     *                     example="Isibor"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="first_name",
+     *                     type="string",
+     *                     maxLength=255,
+     *                     example="Ernest"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="middle_name",
+     *                     type="string",
+     *                     maxLength=255,
+     *                     nullable=true,
+     *                     example="Ose"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="dob",
+     *                     type="string",
+     *                     format="date",
+     *                     example="2012-05-14"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="religion",
+     *                     type="string",
+     *                     maxLength=100,
+     *                     nullable=true,
+     *                     example="Christianity"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="residential_address",
+     *                     type="string",
+     *                     maxLength=255,
+     *                     nullable=true,
+     *                     example="12 Ipaja Road, Lagos"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="state_of_origin",
+     *                     type="string",
+     *                     maxLength=100,
+     *                     nullable=true,
+     *                     example="Edo"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="lga_of_origin",
+     *                     type="string",
+     *                     maxLength=100,
+     *                     nullable=true,
+     *                     example="Oredo"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="session",
+     *                     type="string",
+     *                     maxLength=50,
+     *                     description="Academic session for the learner",
+     *                     example="2025"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="previous_class",
+     *                     type="string",
+     *                     maxLength=50,
+     *                     nullable=true,
+     *                     example="Primary 5"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="present_class",
+     *                     type="string",
+     *                     maxLength=50,
+     *                     example="Primary 6"
+     *                 ),
      *
      *                 @OA\Property(
      *                     property="email",
@@ -958,19 +1118,42 @@ class ApiController extends Controller
      *                 @OA\Property(
      *                     property="nin",
      *                     type="string",
+     *                     maxLength=20,
+     *                     nullable=true,
      *                     example="12345678901",
      *                     description="Optional National Identification Number"
      *                 ),
      *
-     *                 @OA\Property(property="parent_name", type="string", example="Mr Isibor"),
-     *                 @OA\Property(property="parent_relationship", type="string", example="Father"),
-     *                 @OA\Property(property="parent_phone", type="string", example="08012345678"),
+     *                 @OA\Property(
+     *                     property="parent_name",
+     *                     type="string",
+     *                     maxLength=255,
+     *                     nullable=true,
+     *                     example="Mr Isibor"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="parent_relationship",
+     *                     type="string",
+     *                     maxLength=100,
+     *                     nullable=true,
+     *                     example="Father"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="parent_phone",
+     *                     type="string",
+     *                     maxLength=20,
+     *                     nullable=true,
+     *                     example="08012345678"
+     *                 ),
      *
      *                 @OA\Property(
      *                     property="photo",
      *                     type="string",
      *                     format="binary",
-     *                     description="Learner passport photograph"
+     *                     nullable=true,
+     *                     description="Learner passport photograph (jpg, jpeg, png)"
      *                 )
      *             )
      *         )
@@ -980,9 +1163,20 @@ class ApiController extends Controller
      *         response=201,
      *         description="Learner created successfully",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Learner created successfully"),
-     *             @OA\Property(property="learner", type="object"),
-     *             @OA\Property(property="user", type="object")
+     *             type="object",
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="Learner created successfully"
+     *             ),
+     *             @OA\Property(
+     *                 property="learner",
+     *                 type="object"
+     *             ),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object"
+     *             )
      *         )
      *     ),
      *
@@ -997,6 +1191,7 @@ class ApiController extends Controller
      *     )
      * )
      */
+
 
 
     public function createLearners(Request $request)
@@ -1020,6 +1215,7 @@ class ApiController extends Controller
             'lga_of_origin' => 'nullable|string|max:100',
             'previous_class' => 'nullable|string|max:50',
             'present_class' => 'required|string|max:50',
+            'session' => 'required|string|max:50',
 
             // ✅ Email entered by school
             'email' => 'required|email|unique:users,email',
@@ -1066,15 +1262,30 @@ class ApiController extends Controller
     }
 
 
-
     /**
      * @OA\Get(
      *     path="/api/v1/dioceses",
      *     operationId="AllDioceses",
-     *     summary="Get all dioceses",
-     *     description="Retrieve all dioceses nationwide with their associated schools. Accessible only to Super Admin users.",
+     *     summary="Get all dioceses (optional filters)",
+     *     description="Retrieve all dioceses nationwide with their associated schools. Super Admin can optionally filter by state and local government.",
      *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         required=false,
+     *         description="Filter dioceses by state",
+     *         @OA\Schema(type="string", example="Lagos")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         required=false,
+     *         description="Filter dioceses by local government area (LGA)",
+     *         @OA\Schema(type="string", example="Alimosho")
+     *     ),
      *
      *     @OA\Response(
      *         response=200,
@@ -1082,15 +1293,22 @@ class ApiController extends Controller
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="total", type="integer", example=1),
      *             @OA\Property(
      *                 property="data",
      *                 type="array",
      *                 @OA\Items(
      *                     type="object",
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="name", type="string", example="Lagos Archdiocese"),
-     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2024-01-10T08:30:00Z"),
-     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2024-01-10T08:30:00Z"),
+     *                     @OA\Property(property="id", type="integer", example=2),
+     *                     @OA\Property(property="name", type="string", example="Catholic Diocese of Lagos"),
+     *                     @OA\Property(property="province", type="string", example="Lagos Province"),
+     *                     @OA\Property(property="state", type="string", example="Lagos"),
+     *                     @OA\Property(property="lga", type="string", example="Alimosho"),
+     *                     @OA\Property(property="address", type="string", example="12 Ipaja Road, Lagos"),
+     *                     @OA\Property(property="contact_number", type="string", example="+2348012345678"),
+     *                     @OA\Property(property="education_secretary", type="string", example="Rev. John Doe"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-01-01T07:12:46Z"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2026-01-16T21:37:45Z"),
      *
      *                     @OA\Property(
      *                         property="schools",
@@ -1098,12 +1316,12 @@ class ApiController extends Controller
      *                         @OA\Items(
      *                             type="object",
      *                             @OA\Property(property="id", type="integer", example=15),
-     *                             @OA\Property(property="name", type="string", example="St. Mary's Secondary School"),
+     *                             @OA\Property(property="name", type="string", example="St. Mary's Primary School"),
      *                             @OA\Property(property="email", type="string", format="email", example="stmary@gmail.com"),
      *                             @OA\Property(property="state", type="string", example="Lagos"),
      *                             @OA\Property(property="lga", type="string", example="Ikeja"),
-     *                             @OA\Property(property="created_at", type="string", format="date-time", example="2024-02-01T10:00:00Z"),
-     *                             @OA\Property(property="updated_at", type="string", format="date-time", example="2024-02-01T10:00:00Z")
+     *                             @OA\Property(property="created_at", type="string", format="date-time", example="2026-01-05T10:00:00Z"),
+     *                             @OA\Property(property="updated_at", type="string", format="date-time", example="2026-01-05T10:00:00Z")
      *                         )
      *                     )
      *                 )
@@ -1121,24 +1339,39 @@ class ApiController extends Controller
      *
      *     @OA\Response(
      *         response=403,
-     *         description="Unauthorized access",
+     *         description="Forbidden",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="You are not authorized to perform this action.")
+     *             @OA\Property(property="message", type="string", example="Forbidden. Super admin access only.")
      *         )
      *     )
      * )
      */
 
-    public function allDioceses()
+
+    public function allDioceses(Request $request)
     {
-        // Super admin sees ALL dioceses nationwide
-        $dioceses = Diocese::with('schools')->get();
+        // Super admin sees ALL dioceses, with optional filters
+        $query = Diocese::with('schools');
+
+        // Optional filter by state
+        if ($request->filled('state')) {
+            $query->where('state', $request->state);
+        }
+
+        // Optional filter by LGA
+        if ($request->filled('lga')) {
+            $query->where('lga', $request->lga);
+        }
+
+        $dioceses = $query->get();
 
         return response()->json([
             'status' => true,
+            'total' => $dioceses->count(),
             'data' => $dioceses
-        ]);
+        ], 200);
     }
+
 
 
 
@@ -1904,61 +2137,134 @@ class ApiController extends Controller
     /**
      * @OA\Get(
      *     path="/api/v1/school/learners",
-     *     operationId="getSchoolLearners",
-     *     summary="Get learners for authenticated school",
-     *     description="Returns a paginated list of learners belonging to the authenticated school admin’s school.",
+     *     summary="Get learners under school admin's school",
+     *     description="Returns learners under the logged-in school admin's school with optional filters",
      *     tags={"School"},
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
-     *         name="per_page",
+     *         name="student_name",
      *         in="query",
+     *         description="Filter by student name",
      *         required=false,
-     *         description="Number of learners per page",
-     *         @OA\Schema(type="integer", example=15)
+     *         @OA\Schema(type="string", example="John Doe")
+     *     ),
+     *     @OA\Parameter(
+     *         name="student_email",
+     *         in="query",
+     *         description="Filter by student email",
+     *         required=false,
+     *         @OA\Schema(type="string", example="johndoe@gmail.com")
+     *     ),
+     *     @OA\Parameter(
+     *         name="parent_name",
+     *         in="query",
+     *         description="Filter by parent's name",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Jane Doe")
+     *     ),
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         description="Filter by state of origin",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lagos")
+     *     ),
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         description="Filter by LGA of origin",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Apapa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="class",
+     *         in="query",
+     *         description="Filter by previous or present class",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Primary 4")
+     *     ),
+     *     @OA\Parameter(
+     *         name="date",
+     *         in="query",
+     *         description="Filter by created date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-02")
      *     ),
      *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Learners retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="learners", type="object")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=403,
-     *         description="No school linked to this account",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="No school linked to this account")
-     *         )
-     *     )
+     *     @OA\Response(response=200, description="Learners retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="No learners found")
      * )
      */
 
+
     public function getLearnersForSchool(Request $request)
     {
-        $schoolId = auth()->user()->school_id;
+        $user = auth('api')->user();
 
-        // Safety check
-        if (!$schoolId) {
-            return response()->json([
-                'message' => 'No school linked to this account'
-            ], 403);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Pagination size (default 15)
-        $perPage = $request->get('per_page', 15);
+        if ($user->role !== 'school_admin') {
+            return response()->json(['message' => 'Forbidden. School admin access only.'], 403);
+        }
 
-        $learners = Learner::where('school_id', $schoolId)
-            ->orderBy('surname')
-            ->paginate($perPage);
+        if (!$user->school_id) {
+            return response()->json(['message' => 'No school assigned to this admin.'], 422);
+        }
+
+        $query = Learner::query()->where('school_id', $user->school_id);
+
+        if ($request->filled('student_name')) {
+            $name = $request->student_name;
+            $query->whereRaw("CONCAT_WS(' ', surname, first_name, middle_name) LIKE ?", ["%{$name}%"]);
+        }
+
+        if ($request->filled('student_email')) {
+            $email = $request->student_email;
+            $query->whereHas('user', function ($q) use ($email) {
+                $q->where('email', 'LIKE', "%{$email}%");
+            });
+        }
+
+        if ($request->filled('parent_name')) {
+            $query->where('parent_name', 'LIKE', '%' . $request->parent_name . '%');
+        }
+
+        if ($request->filled('state')) {
+            $query->where('state_of_origin', 'LIKE', '%' . $request->state . '%');
+        }
+
+        if ($request->filled('lga')) {
+            $query->where('lga_of_origin', 'LIKE', '%' . $request->lga . '%');
+        }
+
+        if ($request->filled('class')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('previous_class', $request->class)
+                    ->orWhere('present_class', $request->class);
+            });
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $learners = $query->orderBy('created_at', 'desc')->get();
+
+        if ($learners->isEmpty()) {
+            return response()->json(['message' => 'No learners found under this school.'], 404);
+        }
 
         return response()->json([
+            'school_id' => $user->school_id,
+            'total' => $learners->count(),
             'learners' => $learners
-        ]);
+        ], 200);
     }
-
 
 
     /**
@@ -3284,7 +3590,7 @@ class ApiController extends Controller
      *     operationId="getAllDiocesesSuper",
      *     tags={"Api"},
      *     summary="Get all dioceses with schools, learners, and education secretary",
-     *     description="Allows a super admin to retrieve all dioceses including their schools, learners, and education secretary details. Requires JWT authentication.",
+     *     description="Allows a super admin to retrieve all dioceses. Optional filters can be applied using state and LGA. Requires JWT authentication.",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
@@ -3295,6 +3601,28 @@ class ApiController extends Controller
      *         @OA\Schema(
      *             type="integer",
      *             example=10
+     *         )
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         description="Filter dioceses by state (optional)",
+     *         required=false,
+     *         @OA\Schema(
+     *             type="string",
+     *             example="Lagos"
+     *         )
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         description="Filter dioceses by Local Government Area (optional)",
+     *         required=false,
+     *         @OA\Schema(
+     *             type="string",
+     *             example="Alimosho"
      *         )
      *     ),
      *
@@ -3311,6 +3639,7 @@ class ApiController extends Controller
      *                     @OA\Property(property="id", type="integer", example=2),
      *                     @OA\Property(property="name", type="string", example="CATHOLIC DIOCESE OF LAGOS"),
      *                     @OA\Property(property="state", type="string", example="Lagos"),
+     *                     @OA\Property(property="lga", type="string", example="Alimosho"),
      *
      *                     @OA\Property(
      *                         property="educationsecretary",
@@ -3349,7 +3678,7 @@ class ApiController extends Controller
      *                 @OA\Property(property="current_page", type="integer", example=1),
      *                 @OA\Property(property="last_page", type="integer", example=1),
      *                 @OA\Property(property="per_page", type="integer", example=10),
-     *                 @OA\Property(property="total", type="integer", example=1)
+     *                 @OA\Property(property="total", type="integer", example=25)
      *             )
      *         )
      *     ),
@@ -3366,22 +3695,17 @@ class ApiController extends Controller
      * )
      */
 
+
     public function getAllDiocesesSuper(Request $request)
     {
-        // JWT authentication
         $user = auth('api')->user();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 401);
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Role check
         if ($user->role !== 'super_admin') {
-            return response()->json([
-                'message' => 'Forbidden. Super admin access only.'
-            ], 403);
+            return response()->json(['message' => 'Forbidden. Super admin access only.'], 403);
         }
 
         $perPage = $request->get('per_page', 10);
@@ -3389,7 +3713,14 @@ class ApiController extends Controller
         $dioceses = Diocese::with([
             'educationsecretary',
             'schools.learners'
-        ])->paginate($perPage);
+        ])
+            ->when($request->filled('state'), function ($query) use ($request) {
+                $query->where('state', $request->state);
+            })
+            ->when($request->filled('lga'), function ($query) use ($request) {
+                $query->where('lga', $request->lga);
+            })
+            ->paginate($perPage);
 
         return response()->json([
             'data' => $dioceses->items(),
@@ -3401,6 +3732,7 @@ class ApiController extends Controller
             ]
         ], 200);
     }
+
 
 
     /**
@@ -4575,20 +4907,60 @@ class ApiController extends Controller
     /**
      * @OA\Get(
      *     path="/api/v1/super-admin/schools/filter",
-     *     summary="Filter schools by diocese",
-     *     description="Allows super admin to get all schools for a specific diocese by providing diocese_id",
+     *     operationId="filterSchoolsByDiocese",
+     *     summary="Get schools for a specific diocese with optional filters",
+     *     description="Allows super admin to retrieve all schools belonging to a specific diocese. Optional filters include school name, province, and creation date range.",
      *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
+     *
      *     @OA\Parameter(
      *         name="diocese_id",
      *         in="query",
-     *         description="ID of the diocese to filter schools",
+     *         description="ID of the diocese (required)",
      *         required=true,
-     *         @OA\Schema(
-     *             type="integer",
-     *             example=2
-     *         )
+     *         @OA\Schema(type="integer", example=2)
      *     ),
+     *
+     *     @OA\Parameter(
+     *         name="name",
+     *         in="query",
+     *         description="Filter by school name (optional, partial match)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="JOSEPH")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="province",
+     *         in="query",
+     *         description="Filter by province (optional)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lagos Province")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="from_date",
+     *         in="query",
+     *         description="Filter schools created from this date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-01")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="to_date",
+     *         in="query",
+     *         description="Filter schools created up to this date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-31")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Number of records per page",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Schools retrieved successfully",
@@ -4596,46 +4968,36 @@ class ApiController extends Controller
      *             type="object",
      *             @OA\Property(property="diocese_id", type="integer", example=2),
      *             @OA\Property(
-     *                 property="schools",
+     *                 property="data",
      *                 type="array",
      *                 @OA\Items(
      *                     type="object",
      *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="name", type="string", example="St Joseph Catholic School"),
+     *                     @OA\Property(property="name", type="string", example="ST. JOSEPH CATHOLIC SCHOOL"),
      *                     @OA\Property(property="province", type="string", example="Lagos Province"),
      *                     @OA\Property(property="state", type="string", example="Lagos"),
      *                     @OA\Property(property="lga", type="string", example="Apapa"),
-     *                     @OA\Property(property="contact_number", type="string", example="+2348012345678")
+     *                     @OA\Property(property="contact_number", type="string", example="+2348012345678"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time")
      *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="meta",
+     *                 type="object",
+     *                 @OA\Property(property="current_page", type="integer"),
+     *                 @OA\Property(property="last_page", type="integer"),
+     *                 @OA\Property(property="per_page", type="integer"),
+     *                 @OA\Property(property="total", type="integer")
      *             )
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Forbidden",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="Forbidden. Super admin access only.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="No schools found for this diocese",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="No schools found for this diocese")
-     *         )
-     *     )
+     *
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Forbidden. Super admin access only."),
+     *     @OA\Response(response=404, description="No schools found for this diocese")
      * )
      */
+
     public function filterSchoolsByDiocese(Request $request)
     {
         $user = auth('api')->user();
@@ -4648,24 +5010,47 @@ class ApiController extends Controller
             return response()->json(['message' => 'Forbidden. Super admin access only.'], 403);
         }
 
-        $dioceseId = $request->query('diocese_id');
-
-        if (!$dioceseId) {
+        if (!$request->filled('diocese_id')) {
             return response()->json(['message' => 'diocese_id is required'], 422);
         }
 
-        $schools = School::where('diocese_id', $dioceseId)->get();
+        $perPage = $request->get('per_page', 10);
+
+        $schools = School::query()
+            ->where('diocese_id', $request->diocese_id)
+
+            // Optional filters
+            ->when($request->filled('name'), function ($q) use ($request) {
+                $q->where('name', 'LIKE', '%' . $request->name . '%');
+            })
+            ->when($request->filled('province'), function ($q) use ($request) {
+                $q->where('province', $request->province);
+            })
+            ->when($request->filled('from_date'), function ($q) use ($request) {
+                $q->whereDate('created_at', '>=', $request->from_date);
+            })
+            ->when($request->filled('to_date'), function ($q) use ($request) {
+                $q->whereDate('created_at', '<=', $request->to_date);
+            })
+
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
 
         if ($schools->isEmpty()) {
             return response()->json(['message' => 'No schools found for this diocese'], 404);
         }
 
         return response()->json([
-            'diocese_id' => $dioceseId,
-            'schools' => $schools
+            'diocese_id' => $request->diocese_id,
+            'data' => $schools->items(),
+            'meta' => [
+                'current_page' => $schools->currentPage(),
+                'last_page' => $schools->lastPage(),
+                'per_page' => $schools->perPage(),
+                'total' => $schools->total(),
+            ]
         ], 200);
     }
-
 
 
     /**
@@ -4922,72 +5307,98 @@ class ApiController extends Controller
     /**
      * @OA\Get(
      *     path="/api/v1/super-admin/students",
-     *     summary="Get all students with filters",
-     *     description="Allows super admin to retrieve all students. Filters by state, LGA, province, student name, parents' name, and creation date.",
+     *     operationId="getAllStudentsSuper",
+     *     summary="Get all students with optional filters",
+     *     description="Allows super admin to retrieve all students. Filters are optional: state, LGA, province, student name, parent name, and date range.",
      *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
+     *
      *     @OA\Parameter(
      *         name="state",
      *         in="query",
-     *         description="Filter by diocese state",
+     *         description="Filter by diocese state (optional)",
      *         required=false,
      *         @OA\Schema(type="string", example="Lagos")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="lga",
      *         in="query",
-     *         description="Filter by diocese LGA",
+     *         description="Filter by diocese LGA (optional)",
      *         required=false,
      *         @OA\Schema(type="string", example="Alimosho")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="province",
      *         in="query",
-     *         description="Filter by diocese province",
+     *         description="Filter by diocese province (optional)",
      *         required=false,
      *         @OA\Schema(type="string", example="Lagos Province")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="student_name",
      *         in="query",
-     *         description="Search by student name",
+     *         description="Search by student full name (optional)",
      *         required=false,
-     *         @OA\Schema(type="string", example="John Doe")
+     *         @OA\Schema(type="string", example="Ernest Isibor")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="parent_name",
      *         in="query",
-     *         description="Search by parent's name",
+     *         description="Search by parent name (optional)",
      *         required=false,
      *         @OA\Schema(type="string", example="Jane Doe")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="from",
      *         in="query",
-     *         description="Filter students created after this date (YYYY-MM-DD)",
+     *         description="Filter students created from this date (YYYY-MM-DD)",
      *         required=false,
-     *         @OA\Schema(type="string", example="2026-01-01")
+     *         @OA\Schema(type="string", format="date", example="2026-01-01")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="to",
      *         in="query",
-     *         description="Filter students created before this date (YYYY-MM-DD)",
+     *         description="Filter students created up to this date (YYYY-MM-DD)",
      *         required=false,
-     *         @OA\Schema(type="string", example="2026-01-24")
+     *         @OA\Schema(type="string", format="date", example="2026-01-31")
      *     ),
+     *
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Number of records per page",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *
      *     @OA\Response(
      *         response=200,
-     *         description="Filtered students retrieved successfully",
+     *         description="Students retrieved successfully",
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="total", type="integer", example=25),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object")),
+     *             @OA\Property(
+     *                 property="meta",
+     *                 type="object",
+     *                 @OA\Property(property="current_page", type="integer"),
+     *                 @OA\Property(property="last_page", type="integer"),
+     *                 @OA\Property(property="per_page", type="integer"),
+     *                 @OA\Property(property="total", type="integer")
+     *             )
      *         )
      *     ),
+     *
      *     @OA\Response(response=401, description="Unauthorized"),
      *     @OA\Response(response=403, description="Forbidden. Super admin access only.")
      * )
      */
+
     public function getAllStudents(Request $request)
     {
         $user = auth('api')->user();
@@ -5000,52 +5411,59 @@ class ApiController extends Controller
             return response()->json(['message' => 'Forbidden. Super admin access only.'], 403);
         }
 
-        $query = Learner::query()
+        $perPage = $request->get('per_page', 10);
+
+        $learners = Learner::query()
             ->join('schools', 'learners.school_id', '=', 'schools.id')
             ->join('dioceses', 'schools.diocese_id', '=', 'dioceses.id')
-            ->select('learners.*'); // only select learners columns
+            ->select('learners.*')
 
-        // Filter by state, lga, province
-        if ($request->filled('state')) {
-            $query->where('dioceses.state', $request->state);
-        }
+            // Diocese filters
+            ->when($request->filled('state'), function ($q) use ($request) {
+                $q->where('dioceses.state', $request->state);
+            })
+            ->when($request->filled('lga'), function ($q) use ($request) {
+                $q->where('dioceses.lga', $request->lga);
+            })
+            ->when($request->filled('province'), function ($q) use ($request) {
+                $q->where('dioceses.province', $request->province);
+            })
 
-        if ($request->filled('lga')) {
-            $query->where('dioceses.lga', $request->lga);
-        }
+            // Student full name search
+            ->when($request->filled('student_name'), function ($q) use ($request) {
+                $name = $request->student_name;
+                $q->whereRaw(
+                    "CONCAT_WS(' ', learners.surname, learners.first_name, learners.middle_name) LIKE ?",
+                    ["%{$name}%"]
+                );
+            })
 
-        if ($request->filled('province')) {
-            $query->where('dioceses.province', $request->province);
-        }
+            // Parent name search
+            ->when($request->filled('parent_name'), function ($q) use ($request) {
+                $q->where('learners.parent_name', 'LIKE', '%' . $request->parent_name . '%');
+            })
 
-        // Search by learner full name
-        if ($request->filled('student_name')) {
-            $name = $request->student_name;
-            $query->whereRaw("CONCAT_WS(' ', surname, first_name, middle_name) LIKE ?", ["%{$name}%"]);
-        }
+            // Date filters
+            ->when($request->filled('from'), function ($q) use ($request) {
+                $q->whereDate('learners.created_at', '>=', $request->from);
+            })
+            ->when($request->filled('to'), function ($q) use ($request) {
+                $q->whereDate('learners.created_at', '<=', $request->to);
+            })
 
-        // Search by parent name
-        if ($request->filled('parent_name')) {
-            $query->where('learners.parent_name', 'like', '%' . $request->parent_name . '%');
-        }
-
-        // Filter by creation date
-        if ($request->filled('from')) {
-            $query->whereDate('learners.created_at', '>=', $request->from);
-        }
-
-        if ($request->filled('to')) {
-            $query->whereDate('learners.created_at', '<=', $request->to);
-        }
-
-        $learners = $query->get();
+            ->orderBy('learners.created_at', 'desc')
+            ->paginate($perPage);
 
         return response()->json([
-            'total' => $learners->count(),
-            'data' => $learners
+            'data' => $learners->items(),
+            'meta' => [
+                'current_page' => $learners->currentPage(),
+                'last_page' => $learners->lastPage(),
+                'per_page' => $learners->perPage(),
+                'total' => $learners->total(),
+            ]
         ], 200);
     }
-
 
     /**
      * @OA\Get(
@@ -5302,338 +5720,1132 @@ class ApiController extends Controller
 
 
     /**
- * @OA\Get(
- *     path="/api/v1/diocesan-admin/students",
- *     tags={"Diocese"},
- *     summary="Get all students under a diocese with search and date filtering",
- *     description="Allows a diocesan admin to retrieve all students under their diocese with optional search and date filters.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="search",
- *         in="query",
- *         description="Search by student name, student email, parent name, or school name",
- *         required=false,
- *         @OA\Schema(type="string", example="Ernest")
- *     ),
- *
- *     @OA\Parameter(
- *         name="from",
- *         in="query",
- *         description="Filter students created from this date (YYYY-MM-DD)",
- *         required=false,
- *         @OA\Schema(type="string", format="date", example="2026-01-01")
- *     ),
- *
- *     @OA\Parameter(
- *         name="to",
- *         in="query",
- *         description="Filter students created up to this date (YYYY-MM-DD)",
- *         required=false,
- *         @OA\Schema(type="string", format="date", example="2026-01-31")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Students retrieved successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="total", type="integer", example=1),
- *             @OA\Property(property="data", type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="full_name", type="string", example="Isibor Ernest Peter"),
- *                     @OA\Property(property="email", type="string", example="ernestisibor@gmail.com"),
- *                     @OA\Property(property="parent_name", type="string", example="Jane Doe"),
- *                     @OA\Property(property="school_name", type="string", example="GOVERNMENT COLLEGE"),
- *                     @OA\Property(property="created_at", type="string", example="2026-01-02 11:35:43")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response=401, description="Unauthorized"),
- *     @OA\Response(response=403, description="Forbidden")
- * )
- */
-public function getStudentsUnderDiocese(Request $request)
-{
-    $user = auth('api')->user();
+     * @OA\Get(
+     *     path="/api/v1/diocesan-admin/students",
+     *     summary="Get learners under diocesan admin's diocese",
+     *     description="Returns learners under the logged-in diocesan admin's diocese with optional filters",
+     *     tags={"Diocese"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="school_name",
+     *         in="query",
+     *         description="Filter by school name",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Joseph School")
+     *     ),
+     *     @OA\Parameter(
+     *         name="school_email",
+     *         in="query",
+     *         description="Filter by school email",
+     *         required=false,
+     *         @OA\Schema(type="string", example="school@gmail.com")
+     *     ),
+     *     @OA\Parameter(
+     *         name="parent_name",
+     *         in="query",
+     *         description="Filter by parent's name",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Jane Doe")
+     *     ),
+     *     @OA\Parameter(
+     *         name="date",
+     *         in="query",
+     *         description="Filter by created date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-01")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Learners retrieved successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No learners found"
+     *     )
+     * )
+     */
 
-    if (!$user || $user->role !== 'diocesan_admin') {
-        return response()->json(['message' => 'Forbidden'], 403);
+    public function getStudentsUnderDiocese(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if ($user->role !== 'diocesan_admin') {
+            return response()->json([
+                'message' => 'Forbidden. Diocesan admin access only.'
+            ], 403);
+        }
+
+        if (!$user->diocese_id) {
+            return response()->json([
+                'message' => 'No diocese assigned to this admin.'
+            ], 422);
+        }
+
+        // Query learners under schools in this diocese
+        $query = Learner::query()
+            ->join('schools', 'learners.school_id', '=', 'schools.id')
+            ->where('schools.diocese_id', $user->diocese_id)
+            ->select('learners.*');
+
+        // Optional filters
+        if ($request->filled('school_name')) {
+            $query->where('schools.name', 'LIKE', '%' . $request->school_name . '%');
+        }
+
+        if ($request->filled('school_email')) {
+            $query->where('schools.email', 'LIKE', '%' . $request->school_email . '%');
+        }
+
+        if ($request->filled('parent_name')) {
+            $query->where('learners.parent_name', 'LIKE', '%' . $request->parent_name . '%');
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('learners.created_at', $request->date);
+        }
+
+        $learners = $query->orderBy('learners.created_at', 'desc')->get();
+
+        if ($learners->isEmpty()) {
+            return response()->json([
+                'message' => 'No learners found under this diocese.'
+            ], 404);
+        }
+
+        return response()->json([
+            'diocese_id' => $user->diocese_id,
+            'total' => $learners->count(),
+            'learners' => $learners
+        ], 200);
     }
 
-    if (!$user->diocese_id) {
-        return response()->json(['message' => 'No diocese linked to this account'], 403);
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/school-admin/students",
+     *     tags={"School"},
+     *     summary="Filter students in a school by name, email, or parent name",
+     *     description="Allows a school admin to search students in their school using name, email, or parent name.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Search by student name, email, or parent name",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Ernest")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Students retrieved successfully"
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
+    public function filterStudentsForSchool(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user || $user->role !== 'school_admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!$user->school_id) {
+            return response()->json(['message' => 'No school linked to this account'], 403);
+        }
+
+        $query = DB::table('learners')
+            ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
+            ->where('learners.school_id', $user->school_id)
+            ->select(
+                'learners.id',
+                DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
+                'users.email',
+                'learners.parent_name',
+                'learners.created_at'
+            );
+
+        /** 🔍 SEARCH FILTER */
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('learners.surname', 'like', "%{$search}%")
+                    ->orWhere('learners.first_name', 'like', "%{$search}%")
+                    ->orWhere('learners.middle_name', 'like', "%{$search}%")
+                    ->orWhere('learners.parent_name', 'like', "%{$search}%")
+                    ->orWhere('users.email', 'like', "%{$search}%");
+            });
+        }
+
+        $students = $query->orderBy('learners.created_at', 'desc')->get();
+
+        return response()->json([
+            'total' => $students->count(),
+            'data' => $students
+        ], 200);
     }
 
-    $query = DB::table('learners')
-        ->join('schools', 'learners.school_id', '=', 'schools.id')
-        ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
-        ->where('schools.diocese_id', $user->diocese_id)
-        ->select(
-            'learners.id',
-            DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
-            'users.email',
-            'learners.parent_name',
-            'schools.name as school_name',
-            'learners.created_at'
-        );
 
-    /** 🔍 SEARCH */
-    if ($request->filled('search')) {
-        $search = $request->search;
+    /**
+     * @OA\Get(
+     *     path="/api/v1/school-admin/students/lga-filter",
+     *     tags={"School"},
+     *     summary="Filter students by state and local government",
+     *     description="Allows a school admin to filter students in their school by state and local government of origin.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         description="Filter by student's state of origin",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lagos")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         description="Filter by student's local government of origin",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Apapa")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Students retrieved successfully"
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
 
-        $query->where(function ($q) use ($search) {
-            $q->where('learners.surname', 'like', "%{$search}%")
-              ->orWhere('learners.first_name', 'like', "%{$search}%")
-              ->orWhere('learners.middle_name', 'like', "%{$search}%")
-              ->orWhere('learners.parent_name', 'like', "%{$search}%")
-              ->orWhere('schools.name', 'like', "%{$search}%")
-              ->orWhere('users.email', 'like', "%{$search}%");
-        });
+    public function filterStudentsForSchoolLga(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user || $user->role !== 'school_admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!$user->school_id) {
+            return response()->json(['message' => 'No school linked to this account'], 403);
+        }
+
+        $query = DB::table('learners')
+            ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
+            ->where('learners.school_id', $user->school_id)
+            ->select(
+                'learners.id',
+                DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
+                'users.email',
+                'learners.parent_name',
+                'learners.state_of_origin',
+                'learners.lga_of_origin',
+                'learners.created_at'
+            );
+
+        /** 📍 FILTER BY STATE */
+        if ($request->filled('state')) {
+            $query->where('learners.state_of_origin', $request->state);
+        }
+
+        /** 📍 FILTER BY LGA */
+        if ($request->filled('lga')) {
+            $query->where('learners.lga_of_origin', $request->lga);
+        }
+
+        $students = $query->orderBy('learners.created_at', 'desc')->get();
+
+        return response()->json([
+            'total' => $students->count(),
+            'data' => $students
+        ], 200);
     }
 
-    /** 📅 DATE FILTER */
-    if ($request->filled('from')) {
-        $query->whereDate('learners.created_at', '>=', $request->from);
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/school-admin/students/date-filter",
+     *     tags={"School"},
+     *     summary="Filter students by date",
+     *     description="Allows a school admin to filter students in their school by registration date range.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="start_date",
+     *         in="query",
+     *         description="Filter students registered from this date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-01")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="end_date",
+     *         in="query",
+     *         description="Filter students registered up to this date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-31")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Students filtered successfully"
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
+
+    public function filterStudentsForSchoolDate(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user || $user->role !== 'school_admin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!$user->school_id) {
+            return response()->json(['message' => 'No school linked to this account'], 403);
+        }
+
+        $query = DB::table('learners')
+            ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
+            ->where('learners.school_id', $user->school_id)
+            ->select(
+                'learners.id',
+                DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
+                'users.email',
+                'learners.parent_name',
+                'learners.state_of_origin',
+                'learners.lga_of_origin',
+                'learners.created_at'
+            );
+
+        // 📅 Date filtering
+        if ($request->filled('start_date')) {
+            $query->whereDate('learners.created_at', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('learners.created_at', '<=', $request->end_date);
+        }
+
+        $students = $query->orderBy('learners.created_at', 'desc')->get();
+
+        return response()->json([
+            'total' => $students->count(),
+            'data' => $students
+        ], 200);
     }
 
-    if ($request->filled('to')) {
-        $query->whereDate('learners.created_at', '<=', $request->to);
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/learners/class-filter",
+     *     summary="Filter learners by class for school admin",
+     *     description="Retrieve a list of learners filtered by class. Only accessible to school admins.",
+     *     tags={"School"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="class",
+     *         in="query",
+     *         description="Class to filter learners by (e.g., 'Primary 4')",
+     *         required=false,
+     *         @OA\Schema(
+     *             type="string",
+     *             example="Primary 4"
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of learners filtered by class",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="total", type="integer", example=1),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=2),
+     *                     @OA\Property(property="school_id", type="integer", example=2),
+     *                     @OA\Property(property="surname", type="string", example="Isibor"),
+     *                     @OA\Property(property="first_name", type="string", example="Ernest"),
+     *                     @OA\Property(property="middle_name", type="string", example="Peter"),
+     *                     @OA\Property(property="dob", type="string", format="date", example="2010-05-15"),
+     *                     @OA\Property(property="present_class", type="string", example="Primary 4"),
+     *                     @OA\Property(property="parent_name", type="string", example="Jane Doe"),
+     *                     @OA\Property(property="state_of_origin", type="string", example="Lagos"),
+     *                     @OA\Property(property="lga_of_origin", type="string", example="Apapa"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-01-02T11:35:43"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2026-01-04T00:24:52")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden. Only school admins can access.",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Forbidden. School admin access only.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized. User not authenticated.",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     )
+     * )
+     */
+
+    public function filterLearnersByClass(Request $request)
+    {
+        $user = auth('api')->user();
+
+        // Ensure only school admins can access
+        if (!$user || $user->role !== 'school_admin') {
+            return response()->json([
+                'message' => 'Forbidden. School admin access only.'
+            ], 403);
+        }
+
+        // Start query for learners in the admin's school
+        $query = Learner::where('school_id', $user->school_id);
+
+        // Filter by class if provided
+        if ($request->filled('class')) {
+            $query->where('present_class', $request->class);
+        }
+
+        $learners = $query->get();
+
+        return response()->json([
+            'total' => $learners->count(),
+            'data' => $learners
+        ], 200);
     }
 
-    $students = $query->orderBy('learners.created_at', 'desc')->get();
 
-    return response()->json([
-        'total' => $students->count(),
-        'data' => $students
-    ]);
-}
+    /**
+     * @OA\Get(
+     *     path="/api/v1/super-admin/all/schools",
+     *     operationId="getAllSchoolsSuper",
+     *     tags={"Api"},
+     *     summary="Get all schools (Super Admin)",
+     *     description="Allows a super admin to retrieve all schools. Optional filters can be applied using diocese, school name, province, and date range. Requires JWT authentication.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         description="Number of records per page",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="diocese",
+     *         in="query",
+     *         description="Filter schools by diocese ID (optional)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=2)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="name",
+     *         in="query",
+     *         description="Filter schools by school name (optional, partial match)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="ST. JOSEPH")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="province",
+     *         in="query",
+     *         description="Filter schools by province (optional)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lagos Province")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="from_date",
+     *         in="query",
+     *         description="Filter schools created from this date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-01")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="to_date",
+     *         in="query",
+     *         description="Filter schools created up to this date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-31")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="ST. JOSEPH CATHOLIC SCHOOL"),
+     *                     @OA\Property(property="province", type="string", example="Lagos Province"),
+     *                     @OA\Property(property="state", type="string", example="Lagos"),
+     *                     @OA\Property(property="lga", type="string", example="Apapa"),
+     *
+     *                     @OA\Property(
+     *                         property="diocese",
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=2),
+     *                         @OA\Property(property="name", type="string", example="Catholic Diocese of Lagos")
+     *                     ),
+     *
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-01-01 16:33:18")
+     *                 )
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="meta",
+     *                 type="object",
+     *                 @OA\Property(property="current_page", type="integer", example=1),
+     *                 @OA\Property(property="last_page", type="integer", example=3),
+     *                 @OA\Property(property="per_page", type="integer", example=10),
+     *                 @OA\Property(property="total", type="integer", example=25)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized - Invalid or missing JWT token"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden - User is not a super admin"
+     *     )
+     * )
+     */
 
 
+    public function getAllSchoolsSuper(Request $request)
+    {
+        // JWT authentication
+        $user = auth('api')->user();
 
-/**
- * @OA\Get(
- *     path="/api/v1/school-admin/students",
- *     tags={"School"},
- *     summary="Filter students in a school by name, email, or parent name",
- *     description="Allows a school admin to search students in their school using name, email, or parent name.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="search",
- *         in="query",
- *         description="Search by student name, email, or parent name",
- *         required=false,
- *         @OA\Schema(type="string", example="Ernest")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Students retrieved successfully"
- *     ),
- *     @OA\Response(response=401, description="Unauthorized"),
- *     @OA\Response(response=403, description="Forbidden")
- * )
- */
-public function filterStudentsForSchool(Request $request)
-{
-    $user = auth('api')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
 
-    if (!$user || $user->role !== 'school_admin') {
-        return response()->json(['message' => 'Forbidden'], 403);
+        // Role check
+        if ($user->role !== 'super_admin') {
+            return response()->json(['message' => 'Forbidden. Super admin access only.'], 403);
+        }
+
+        $perPage = $request->get('per_page', 10);
+
+        $schools = School::with(['diocese'])
+            ->when($request->filled('diocese'), function ($query) use ($request) {
+                $query->where('diocese_id', $request->diocese);
+            })
+            ->when($request->filled('name'), function ($query) use ($request) {
+                $query->where('name', 'LIKE', '%' . $request->name . '%');
+            })
+            ->when($request->filled('province'), function ($query) use ($request) {
+                $query->where('province', $request->province);
+            })
+            ->when($request->filled('from_date'), function ($query) use ($request) {
+                $query->whereDate('created_at', '>=', $request->from_date);
+            })
+            ->when($request->filled('to_date'), function ($query) use ($request) {
+                $query->whereDate('created_at', '<=', $request->to_date);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+
+        return response()->json([
+            'data' => $schools->items(),
+            'meta' => [
+                'current_page' => $schools->currentPage(),
+                'last_page' => $schools->lastPage(),
+                'per_page' => $schools->perPage(),
+                'total' => $schools->total(),
+            ]
+        ], 200);
     }
 
-    if (!$user->school_id) {
-        return response()->json(['message' => 'No school linked to this account'], 403);
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/diocesan-admin/schools",
+     *     summary="Get schools under logged-in diocesan admin",
+     *     description="Returns all schools under the diocesan admin's diocese with optional filters",
+     *     tags={"Diocese"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="name",
+     *         in="query",
+     *         description="Filter by school name",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Joseph")
+     *     ),
+     *     @OA\Parameter(
+     *         name="email",
+     *         in="query",
+     *         description="Filter by school email",
+     *         required=false,
+     *         @OA\Schema(type="string", example="school@gmail.com")
+     *     ),
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         description="Filter by state",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lagos")
+     *     ),
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         description="Filter by LGA",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Apapa")
+     *     ),
+     *     @OA\Parameter(
+     *         name="date",
+     *         in="query",
+     *         description="Filter by created date (YYYY-MM-DD)",
+     *         required=false,
+     *         @OA\Schema(type="string", format="date", example="2026-01-01")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Schools retrieved successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No schools found"
+     *     )
+     * )
+     */
+
+
+    public function getSchoolsUnderDiocese(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if ($user->role !== 'diocesan_admin') {
+            return response()->json([
+                'message' => 'Forbidden. Diocesan admin access only.'
+            ], 403);
+        }
+
+        if (!$user->diocese_id) {
+            return response()->json([
+                'message' => 'No diocese assigned to this admin.'
+            ], 422);
+        }
+
+        $query = School::where('diocese_id', $user->diocese_id);
+
+        // OPTIONAL FILTERS
+        if ($request->filled('name')) {
+            $query->where('name', 'LIKE', '%' . $request->name . '%');
+        }
+
+        if ($request->filled('email')) {
+            $query->where('email', 'LIKE', '%' . $request->email . '%');
+        }
+
+        if ($request->filled('state')) {
+            $query->where('state', $request->state);
+        }
+
+        if ($request->filled('lga')) {
+            $query->where('lga', $request->lga);
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $schools = $query->orderBy('created_at', 'desc')->get();
+
+        if ($schools->isEmpty()) {
+            return response()->json([
+                'message' => 'No schools found for this diocese.'
+            ], 404);
+        }
+
+        return response()->json([
+            'diocese_id' => $user->diocese_id,
+            'total' => $schools->count(),
+            'schools' => $schools
+        ], 200);
     }
 
-    $query = DB::table('learners')
-        ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
-        ->where('learners.school_id', $user->school_id)
-        ->select(
-            'learners.id',
-            DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
-            'users.email',
-            'learners.parent_name',
-            'learners.created_at'
-        );
 
-    /** 🔍 SEARCH FILTER */
-    if ($request->filled('search')) {
-        $search = $request->search;
+    /**
+     * @OA\Get(
+     *     path="/api/v1/super-admin/provinces",
+     *     summary="Get all provinces",
+     *     description="Allows super admin to retrieve a list of all unique provinces from dioceses",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Provinces retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="total", type="integer", example=5),
+     *             @OA\Property(
+     *                 property="provinces",
+     *                 type="array",
+     *                 @OA\Items(type="string", example="Lagos Province")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Forbidden. Super admin access only.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No provinces found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="No provinces found.")
+     *         )
+     *     )
+     * )
+     */
 
-        $query->where(function ($q) use ($search) {
-            $q->where('learners.surname', 'like', "%{$search}%")
-              ->orWhere('learners.first_name', 'like', "%{$search}%")
-              ->orWhere('learners.middle_name', 'like', "%{$search}%")
-              ->orWhere('learners.parent_name', 'like', "%{$search}%")
-              ->orWhere('users.email', 'like', "%{$search}%");
-        });
+    public function getAllProvinces(Request $request)
+    {
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if ($user->role !== 'super_admin') {
+            return response()->json(['message' => 'Forbidden. Super admin access only.'], 403);
+        }
+
+        // Get unique provinces
+        $provinces = Diocese::select('province')
+            ->distinct()
+            ->orderBy('province', 'asc')
+            ->pluck('province'); // returns a simple array
+
+        if ($provinces->isEmpty()) {
+            return response()->json(['message' => 'No provinces found.'], 404);
+        }
+
+        return response()->json([
+            'total' => $provinces->count(),
+            'provinces' => $provinces
+        ], 200);
     }
 
-    $students = $query->orderBy('learners.created_at', 'desc')->get();
 
-    return response()->json([
-        'total' => $students->count(),
-        'data' => $students
-    ], 200);
-}
+    /**
+     * Learners Enrolment Per Month
+     *
+     * Returns the total number of learners enrolled per month for a given year.
+     * - Super Admin: sees enrolments across all schools
+     * - School Admin: sees enrolments only under their school
+     *
+     * @OA\Get(
+     *     path="/api/v1/analytics/learners-enrolment-per-month",
+     *     operationId="learnersEnrolmentPerMonth",
+     *     tags={"Api"},
+     *     summary="Get learners enrolment count per month",
+     *     description="Returns monthly learner enrolment statistics for a specified year. Defaults to the current year if not provided.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="query",
+     *         required=false,
+     *         description="Year to filter enrolment data (defaults to current year)",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=2026
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Learners enrolment per month retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="year", type="integer", example=2026),
+     *             @OA\Property(property="total_months", type="integer", example=3),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="year", type="integer", example=2026),
+     *                     @OA\Property(property="month_number", type="integer", example=1),
+     *                     @OA\Property(property="month", type="string", example="January"),
+     *                     @OA\Property(property="total_enrolments", type="integer", example=12)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Forbidden")
+     *         )
+     *     )
+     * )
+     */
 
 
-/**
- * @OA\Get(
- *     path="/api/v1/school-admin/students/lga-filter",
- *     tags={"School"},
- *     summary="Filter students by state and local government",
- *     description="Allows a school admin to filter students in their school by state and local government of origin.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="state",
- *         in="query",
- *         description="Filter by student's state of origin",
- *         required=false,
- *         @OA\Schema(type="string", example="Lagos")
- *     ),
- *
- *     @OA\Parameter(
- *         name="lga",
- *         in="query",
- *         description="Filter by student's local government of origin",
- *         required=false,
- *         @OA\Schema(type="string", example="Apapa")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Students retrieved successfully"
- *     ),
- *     @OA\Response(response=401, description="Unauthorized"),
- *     @OA\Response(response=403, description="Forbidden")
- * )
- */
+    public function learnersEnrolmentPerMonth(Request $request)
+    {
+        $user = auth('api')->user();
 
-public function filterStudentsForSchoolLga(Request $request)
-{
-    $user = auth('api')->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
 
-    if (!$user || $user->role !== 'school_admin') {
-        return response()->json(['message' => 'Forbidden'], 403);
+        // Default to current year if not provided
+        $year = $request->query('year', now()->year);
+
+        $query = Learner::select(
+            DB::raw('YEAR(created_at) as year'),
+            DB::raw('MONTH(created_at) as month_number'),
+            DB::raw('MONTHNAME(created_at) as month'),
+            DB::raw('COUNT(*) as total_enrolments')
+        )
+            ->whereYear('created_at', $year);
+
+        /**
+         * Role-based filtering
+         * Super Admin -> all learners
+         * School Admin -> only learners under his school
+         */
+        if ($user->role === 'school_admin') {
+            $query->where('school_id', $user->school_id);
+        }
+
+        $enrolments = $query
+            ->groupBy('year', 'month_number', 'month')
+            ->orderBy('month_number', 'asc')
+            ->get();
+
+        return response()->json([
+            'year' => (int) $year,
+            'total_months' => $enrolments->count(),
+            'data' => $enrolments
+        ], 200);
     }
 
-    if (!$user->school_id) {
-        return response()->json(['message' => 'No school linked to this account'], 403);
+
+    /**
+     * Reset authenticated user's password to default
+     *
+     * @OA\Post(
+     *     path="/api/v1/reset-password-default",
+     *     operationId="resetPasswordToDefault",
+     *     tags={"Reset Password"},
+     *     summary="Reset password to default",
+     *     description="Resets the authenticated user's password to a system-defined default password.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Password reset successfully"),
+     *             @OA\Property(property="default_password", type="string", example="password222")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function resetPasswordToDefault()
+    {
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $defaultPassword = 'PassWord123!';
+
+        $user->update([
+            'password' => Hash::make($defaultPassword),
+        ]);
+
+        return response()->json([
+            'message' => 'Password reset successfully',
+            'default_password' => $defaultPassword
+        ], 200);
     }
 
-    $query = DB::table('learners')
-        ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
-        ->where('learners.school_id', $user->school_id)
-        ->select(
-            'learners.id',
-            DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
-            'users.email',
-            'learners.parent_name',
-            'learners.state_of_origin',
-            'learners.lga_of_origin',
-            'learners.created_at'
-        );
 
-    /** 📍 FILTER BY STATE */
-    if ($request->filled('state')) {
-        $query->where('learners.state_of_origin', $request->state);
+
+    /**
+     * Reset Diocesan Admin Password
+     *
+     * This endpoint allows a super admin to reset the password of a diocesan admin
+     * to the default password "PassWord123!".
+     *
+     * @OA\Put(
+     *     path="/api/v1/diocesan-admins/{dioceseId}/reset-password",
+     *     operationId="resetDiocesanAdminPassword",
+     *     summary="Reset diocesan admin password",
+     *     description="Allows the super admin to reset the password of a diocesan admin for a specific diocese to the default password 'password222'.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="dioceseId",
+     *         in="path",
+     *         description="ID of the diocese whose admin password is being reset",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Diocesan admin password reset successfully"),
+     *             @OA\Property(property="default_password", type="string", example="password222")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden. Super admin access only",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Forbidden. Super admin access only.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Diocesan admin not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Diocesan admin not found for this diocese")
+     *         )
+     *     )
+     * )
+     */
+
+    public function resetDiocesanAdminPassword($dioceseId)
+    {
+        $authUser = auth('api')->user();
+
+        // Only super admin can do this
+        if (!$authUser || $authUser->role !== 'super_admin') {
+            return response()->json([
+                'message' => 'Forbidden. Super admin access only.'
+            ], 403);
+        }
+
+        // Find diocesan admin user for this diocese
+        $diocesanAdmin = User::where('diocese_id', $dioceseId)
+            ->where('role', 'diocesan_admin')
+            ->first();
+
+        if (!$diocesanAdmin) {
+            return response()->json([
+                'message' => 'Diocesan admin not found for this diocese'
+            ], 404);
+        }
+
+        // Default password
+        $defaultPassword = 'PassWord123!';
+
+        // Reset password
+        $diocesanAdmin->update([
+            'password' => Hash::make($defaultPassword),
+        ]);
+
+        return response()->json([
+            'message' => 'Diocesan admin password reset successfully',
+            'default_password' => $defaultPassword
+        ], 200);
     }
 
-    /** 📍 FILTER BY LGA */
-    if ($request->filled('lga')) {
-        $query->where('learners.lga_of_origin', $request->lga);
+
+    /**
+     * Reset School Admin Password
+     *
+     * This endpoint allows a diocesan admin to reset the password of a school admin
+     * under their diocese to the default password "PassWord123!".
+     *
+     * @OA\Put(
+     *     path="/api/v1/schools/{schoolId}/reset-password",
+     *     operationId="resetSchoolAdminPassword",
+     *     summary="Reset school admin password",
+     *     description="Allows the diocesan admin to reset the password of a school admin under their diocese to the default password 'password222'.",
+     *     tags={"Diocese"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="schoolId",
+     *         in="path",
+     *         description="ID of the school whose admin password is being reset",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="School admin password reset successfully"),
+     *             @OA\Property(property="default_password", type="string", example="password222")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden. Diocesan admin access only",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="Forbidden. Diocesan admin access only.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="School or school admin not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="School admin not found for this school")
+     *         )
+     *     )
+     * )
+     */
+
+    public function resetSchoolAdminPassword($schoolId)
+    {
+        $authUser = auth('api')->user();
+
+        // Only diocesan admin can do this
+        if (!$authUser || $authUser->role !== 'diocesan_admin') {
+            return response()->json([
+                'message' => 'Forbidden. Diocesan admin access only.'
+            ], 403);
+        }
+
+        // Find the school under this diocese
+        $school = School::where('id', $schoolId)
+            ->where('diocese_id', $authUser->diocese_id)
+            ->first();
+
+        if (!$school) {
+            return response()->json([
+                'message' => 'School not found under your diocese'
+            ], 404);
+        }
+
+        // Get the school admin user
+        $schoolAdmin = User::where('school_id', $school->id)
+            ->where('role', 'school_admin')
+            ->first();
+
+        if (!$schoolAdmin) {
+            return response()->json([
+                'message' => 'School admin not found for this school'
+            ], 404);
+        }
+
+        // Default password
+        $defaultPassword = 'PassWord123!';
+
+        // Reset password
+        $schoolAdmin->update([
+            'password' => Hash::make($defaultPassword),
+        ]);
+
+        return response()->json([
+            'message' => 'School admin password reset successfully',
+            'default_password' => $defaultPassword
+        ], 200);
     }
-
-    $students = $query->orderBy('learners.created_at', 'desc')->get();
-
-    return response()->json([
-        'total' => $students->count(),
-        'data' => $students
-    ], 200);
-}
-
-
-
-/**
- * @OA\Get(
- *     path="/api/v1/school-admin/students/date-filter",
- *     tags={"School"},
- *     summary="Filter students by date",
- *     description="Allows a school admin to filter students in their school by registration date range.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="start_date",
- *         in="query",
- *         description="Filter students registered from this date (YYYY-MM-DD)",
- *         required=false,
- *         @OA\Schema(type="string", format="date", example="2026-01-01")
- *     ),
- *
- *     @OA\Parameter(
- *         name="end_date",
- *         in="query",
- *         description="Filter students registered up to this date (YYYY-MM-DD)",
- *         required=false,
- *         @OA\Schema(type="string", format="date", example="2026-01-31")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Students filtered successfully"
- *     ),
- *     @OA\Response(response=401, description="Unauthorized"),
- *     @OA\Response(response=403, description="Forbidden")
- * )
- */
-
-public function filterStudentsForSchoolDate(Request $request)
-{
-    $user = auth('api')->user();
-
-    if (!$user || $user->role !== 'school_admin') {
-        return response()->json(['message' => 'Forbidden'], 403);
-    }
-
-    if (!$user->school_id) {
-        return response()->json(['message' => 'No school linked to this account'], 403);
-    }
-
-    $query = DB::table('learners')
-        ->leftJoin('users', 'users.learner_id', '=', 'learners.id')
-        ->where('learners.school_id', $user->school_id)
-        ->select(
-            'learners.id',
-            DB::raw("CONCAT(learners.surname, ' ', learners.first_name, ' ', learners.middle_name) as full_name"),
-            'users.email',
-            'learners.parent_name',
-            'learners.state_of_origin',
-            'learners.lga_of_origin',
-            'learners.created_at'
-        );
-
-    // 📅 Date filtering
-    if ($request->filled('start_date')) {
-        $query->whereDate('learners.created_at', '>=', $request->start_date);
-    }
-
-    if ($request->filled('end_date')) {
-        $query->whereDate('learners.created_at', '<=', $request->end_date);
-    }
-
-    $students = $query->orderBy('learners.created_at', 'desc')->get();
-
-    return response()->json([
-        'total' => $students->count(),
-        'data' => $students
-    ], 200);
-}
-
 
 }
