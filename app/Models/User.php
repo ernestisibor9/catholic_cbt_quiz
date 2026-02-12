@@ -27,6 +27,7 @@ class User extends Authenticatable implements JWTSubject
         'diocese_id',
         'school_id',
         'learner_id',
+        'login_id',
         'email_verified_at', // ✅ add this
     ];
 

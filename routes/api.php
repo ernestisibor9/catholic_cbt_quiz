@@ -33,12 +33,16 @@ Route::prefix('v1')->group(function () {
     Route::get('verify/{userId}/{token}', [ApiController::class, 'verify']);
     Route::post('/forgot-password', [ApiController::class, 'forgotPassword']);
     Route::post('/resend', [ApiController::class, 'resend']);
+    Route::post('/learner/login', [ApiController::class, 'learnerLogin']);
 
     // Protected routes
     Route::middleware(['auth:api', 'throttle:60,1'])->group(function () {
 
         Route::post('/change-password', [ApiController::class, 'changePassword']);
         Route::post('/reset-password-default', [ApiController::class, 'resetPasswordToDefault']);
+        Route::get('/analytics/learners-enrolment-per-month', [ApiController::class, 'learnersEnrolmentPerMonth']);
+        Route::get('/sessions', [ApiController::class, 'getAllSessions']);
+        Route::get('/sessions/{id}', [ApiController::class, 'getSessionById']);
 
         // Super Admin
         Route::middleware(['role:super_admin'])->group(function () {
@@ -49,26 +53,31 @@ Route::prefix('v1')->group(function () {
             Route::get('/super-admin/dioceses/filter-by-date', [ApiController::class, 'filterDiocesesByDate']);
             Route::get('/super-admin/schools/filter-by-date', [ApiController::class, 'filterSchoolsByDate']);
             Route::get('/super-admin/all/schools', [ApiController::class, 'getAllSchoolsSuper']);
-            Route::get('/analytics/learners-enrolment-per-month', [ApiController::class, 'learnersEnrolmentPerMonth']);
+            Route::post('/super-admin/create/sessions', [ApiController::class, 'createSession']);
+
             Route::get('/super-admin/students', [ApiController::class, 'getAllStudents']);
             Route::get('/super-admin/search', [ApiController::class, 'globalSearch']);
             Route::get('/schools/total', [ApiController::class, 'getTotalSchools']);
             Route::get('/learners/total', [ApiController::class, 'getTotalLearners']);
             Route::get('/get/all/dioceses', [ApiController::class, 'getAllDiocesesSuper']);
+            Route::get('/get/all/provinces', [ApiController::class, 'getAllProvincesSuper']);
             Route::post('/create/dioceses', [ApiController::class, 'createDioceses']);
+            Route::post('/create/province', [ApiController::class, 'createProvince']);
             Route::get('/dioceses', [ApiController::class, 'allDioceses']);
             Route::get('/super-admin/provinces', [ApiController::class, 'getAllProvinces']);
             Route::get('/dioceses/{id}/schools', [ApiController::class, 'getSchoolsByDiocese']);
             Route::delete('/delete/schools/{id}', [ApiController::class, 'deleteSchool']);
             Route::put('/dioceses/{id}', [ApiController::class, 'updateDiocese']);
-            Route::get('/dioceses/{id}', [ApiController::class, 'deleteDiocese']);
+            Route::delete('/dioceses/{id}', [ApiController::class, 'deleteDiocese']);
             Route::get('/dioceses/{id}/schools/count', [ApiController::class, 'getTotalSchoolsDiocese']);
             Route::get('/dioceses/{id}/details', [ApiController::class, 'getDioceseDetails']);
             Route::get('/get/learners/{id}', [ApiController::class, 'getSingleLearnerSuperAdmin']);
             Route::get('/get/schools/{id}', [ApiController::class, 'getSingleSchoolSuperAdmin']);
+            Route::get('/get/provinces/{id}', [ApiController::class, 'getSingleProvinceSuperAdmin']);
             Route::put('/update/dioceses/{id}', [ApiController::class, 'updateDioceseSuperAdmin']);
             Route::put('/diocesan-admins/{dioceseId}/reset-password', [ApiController::class, 'resetDiocesanAdminPassword']);
-
+            Route::put('/update/session/{id}', [ApiController::class, 'updateSession']);
+             Route::put('/update/province/{id}', [ApiController::class, 'updateProvince']);
         });
 
         // Diocesan Admin
@@ -102,7 +111,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/schools/update', [ApiController::class, 'updateSchool']);
             Route::get('/school-admin/dashboard', [ApiController::class, 'getSchoolAdminDashboard']);
             Route::post('/create/learners', [ApiController::class, 'createLearners']);
+            Route::post('/create/terms', [ApiController::class, 'createTerm']);
             Route::get('/school/learners', [ApiController::class, 'getLearnersForSchool']);
+            Route::get('/school/terms', [ApiController::class, 'getTermsForSchool']);
             Route::get('/school-admin/students', [ApiController::class, 'filterStudentsForSchool']);
             Route::get('/school-admin/students/lga-filter', [ApiController::class, 'filterStudentsForSchoolLga']);
             Route::get('/school-admin/students/date-filter', [ApiController::class, 'filterStudentsForSchoolDate']);
@@ -112,14 +123,17 @@ Route::prefix('v1')->group(function () {
             Route::delete('/school/learners/{learnerId}/delete', [ApiController::class, 'deleteLearner']);
             Route::post('/school/learners/{learnerId}/reset-password', [ApiController::class, 'resetLearnerPassword']);
             Route::get('/learners/{id}', [ApiController::class, 'getSingleLearner']);
+            Route::put('/update/term/{id}', [ApiController::class, 'updateTerm']);
+            Route::get('/terms/{id}', [ApiController::class, 'getTermById']);
 
         });
 
         // Learners
         Route::middleware(['role:learner'])->group(function () {
             Route::get('/user/learner-id', [ApiController::class, 'getAuthenticatedLearnerId']);
-            Route::get('/learner/profile', [ApiController::class, 'myLearnerProfile']);
+            Route::get('/learner/profile', [ApiController::class, 'getAuthenticatedLearnerProfile']);
             Route::get('/learner/profile/dashboard', [ApiController::class, 'getLearnerProfile']);
+            Route::post('/learner/logout', [ApiController::class, 'learnerLogout']);
         });
 
     });

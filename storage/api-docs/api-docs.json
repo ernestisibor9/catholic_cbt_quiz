@@ -133,8 +133,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Create a new Diocese",
-                "description": "Create a diocese and assign a diocesan admin. Requires JWT authentication.",
+                "summary": "Create a new diocese",
+                "description": "Creates a diocese along with its diocesan admin. Sends verification email to admin.",
                 "operationId": "51fadba4b3c80ae414b9b0e01d8a3433",
                 "requestBody": {
                     "required": true,
@@ -143,7 +143,7 @@
                             "schema": {
                                 "required": [
                                     "name",
-                                    "province",
+                                    "province_id",
                                     "state",
                                     "lga",
                                     "address",
@@ -152,33 +152,40 @@
                                 ],
                                 "properties": {
                                     "name": {
+                                        "description": "Unique diocese name",
                                         "type": "string",
-                                        "example": "Catholic Diocese of Abuja"
+                                        "example": "Ikeja Diocese"
                                     },
-                                    "province": {
-                                        "type": "string",
-                                        "example": "Abuja Province"
+                                    "province_id": {
+                                        "description": "ID of the province this diocese belongs to",
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "state": {
+                                        "description": "State where the diocese is located",
                                         "type": "string",
-                                        "example": "FCT"
+                                        "example": "Lagos"
                                     },
                                     "lga": {
+                                        "description": "Local government area",
                                         "type": "string",
-                                        "example": "Abuja Municipal"
+                                        "example": "Ikeja"
                                     },
                                     "address": {
+                                        "description": "Physical address of the diocese",
                                         "type": "string",
-                                        "example": "123 Catholic Road, Abuja"
+                                        "example": "123 Church St"
                                     },
                                     "contact_number": {
+                                        "description": "Unique contact number for the diocese",
                                         "type": "string",
                                         "example": "+2348012345678"
                                     },
                                     "email": {
+                                        "description": "Email for diocesan admin account",
                                         "type": "string",
                                         "format": "email",
-                                        "example": "diocese@church.org"
+                                        "example": "admin@ikejadiocese.com"
                                     }
                                 },
                                 "type": "object"
@@ -199,7 +206,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Diocese created and email sent to Diocese Admin"
+                                            "example": "Diocese created successfully"
                                         },
                                         "diocese": {
                                             "properties": {
@@ -209,27 +216,35 @@
                                                 },
                                                 "name": {
                                                     "type": "string",
-                                                    "example": "CATHOLIC DIOCESE OF ABUJA"
+                                                    "example": "IKEJA DIOCESE"
                                                 },
-                                                "province": {
-                                                    "type": "string",
-                                                    "example": "Abuja Province"
+                                                "province_id": {
+                                                    "type": "integer",
+                                                    "example": 1
                                                 },
                                                 "state": {
                                                     "type": "string",
-                                                    "example": "FCT"
+                                                    "example": "Lagos"
                                                 },
                                                 "lga": {
                                                     "type": "string",
-                                                    "example": "Abuja Municipal"
+                                                    "example": "Ikeja"
                                                 },
                                                 "address": {
                                                     "type": "string",
-                                                    "example": "123 Catholic Road, Abuja"
+                                                    "example": "123 Church St"
                                                 },
                                                 "contact_number": {
                                                     "type": "string",
                                                     "example": "+2348012345678"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
                                                 }
                                             },
                                             "type": "object"
@@ -238,11 +253,11 @@
                                             "properties": {
                                                 "id": {
                                                     "type": "integer",
-                                                    "example": 5
+                                                    "example": 10
                                                 },
                                                 "email": {
                                                     "type": "string",
-                                                    "example": "diocese@church.org"
+                                                    "example": "admin@ikejadiocese.com"
                                                 },
                                                 "role": {
                                                     "type": "string",
@@ -257,11 +272,32 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized (missing or invalid token)"
-                    },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation error or duplicate diocese",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "name": [
+                                                    "A diocese with this name already exists"
+                                                ],
+                                                "email": [
+                                                    "The email has already been taken."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -957,11 +993,10 @@
                 "tags": [
                     "School"
                 ],
-                "summary": "Register a new learner",
-                "description": "Allows a school admin to create a learner and automatically generates a learner user account using the provided email.",
-                "operationId": "createLearners",
+                "summary": "Create a new learner",
+                "description": "Registers a new learner without email. The system generates a unique Learner ID automatically. Default password is 123456.",
+                "operationId": "0eaa15bd68062145c33c42268f6f07fb",
                 "requestBody": {
-                    "description": "Learner registration payload",
                     "required": true,
                     "content": {
                         "multipart/form-data": {
@@ -970,109 +1005,89 @@
                                     "surname",
                                     "first_name",
                                     "dob",
-                                    "present_class",
-                                    "session",
-                                    "email"
+                                    "present_class"
                                 ],
                                 "properties": {
                                     "surname": {
+                                        "description": "Learner's surname",
                                         "type": "string",
-                                        "maxLength": 255,
-                                        "example": "Isibor"
+                                        "example": "Doe"
                                     },
                                     "first_name": {
+                                        "description": "Learner's first name",
                                         "type": "string",
-                                        "maxLength": 255,
-                                        "example": "Ernest"
+                                        "example": "John"
                                     },
                                     "middle_name": {
+                                        "description": "Learner's middle name (optional)",
                                         "type": "string",
-                                        "maxLength": 255,
-                                        "example": "Ose",
-                                        "nullable": true
+                                        "example": "Michael"
                                     },
                                     "dob": {
+                                        "description": "Date of birth",
                                         "type": "string",
                                         "format": "date",
-                                        "example": "2012-05-14"
+                                        "example": "2010-05-12"
                                     },
                                     "religion": {
+                                        "description": "Learner's religion",
                                         "type": "string",
-                                        "maxLength": 100,
-                                        "example": "Christianity",
-                                        "nullable": true
+                                        "example": "Christianity"
                                     },
                                     "residential_address": {
+                                        "description": "Residential address",
                                         "type": "string",
-                                        "maxLength": 255,
-                                        "example": "12 Ipaja Road, Lagos",
-                                        "nullable": true
+                                        "example": "123 Main Street"
                                     },
                                     "state_of_origin": {
+                                        "description": "State of origin",
                                         "type": "string",
-                                        "maxLength": 100,
-                                        "example": "Edo",
-                                        "nullable": true
+                                        "example": "Lagos"
                                     },
                                     "lga_of_origin": {
+                                        "description": "Local government area of origin",
                                         "type": "string",
-                                        "maxLength": 100,
-                                        "example": "Oredo",
-                                        "nullable": true
-                                    },
-                                    "session": {
-                                        "description": "Academic session for the learner",
-                                        "type": "string",
-                                        "maxLength": 50,
-                                        "example": "2025"
+                                        "example": "Ikeja"
                                     },
                                     "previous_class": {
+                                        "description": "Previous class (if any)",
                                         "type": "string",
-                                        "maxLength": 50,
-                                        "example": "Primary 5",
-                                        "nullable": true
+                                        "example": "Primary 2"
                                     },
                                     "present_class": {
+                                        "description": "Current class",
                                         "type": "string",
-                                        "maxLength": 50,
-                                        "example": "Primary 6"
+                                        "example": "Primary 3"
                                     },
-                                    "email": {
-                                        "description": "Learner email provided by the school",
+                                    "session": {
+                                        "description": "Academic session",
                                         "type": "string",
-                                        "format": "email",
-                                        "example": "ernestisibor@gmail.com"
+                                        "example": "2025/2026"
                                     },
                                     "nin": {
-                                        "description": "Optional National Identification Number",
+                                        "description": "National Identification Number (optional, unique)",
                                         "type": "string",
-                                        "maxLength": 20,
-                                        "example": "12345678901",
-                                        "nullable": true
+                                        "example": "12345678901"
                                     },
                                     "parent_name": {
+                                        "description": "Parent/guardian name",
                                         "type": "string",
-                                        "maxLength": 255,
-                                        "example": "Mr Isibor",
-                                        "nullable": true
+                                        "example": "Jane Doe"
                                     },
                                     "parent_relationship": {
+                                        "description": "Relationship to learner",
                                         "type": "string",
-                                        "maxLength": 100,
-                                        "example": "Father",
-                                        "nullable": true
+                                        "example": "Mother"
                                     },
                                     "parent_phone": {
+                                        "description": "Parent/guardian phone number",
                                         "type": "string",
-                                        "maxLength": 20,
-                                        "example": "08012345678",
-                                        "nullable": true
+                                        "example": "+2348012345678"
                                     },
                                     "photo": {
-                                        "description": "Learner passport photograph (jpg, jpeg, png)",
+                                        "description": "Optional photo file (jpg, jpeg, png)",
                                         "type": "string",
-                                        "format": "binary",
-                                        "nullable": true
+                                        "format": "binary"
                                     }
                                 },
                                 "type": "object"
@@ -1092,9 +1107,64 @@
                                             "example": "Learner created successfully"
                                         },
                                         "learner": {
+                                            "description": "Learner details",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "learner_id": {
+                                                    "type": "string",
+                                                    "example": "CSN/LAG/HOL/0001"
+                                                },
+                                                "surname": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "first_name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "middle_name": {
+                                                    "type": "string",
+                                                    "example": "Michael"
+                                                },
+                                                "dob": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2010-05-12"
+                                                },
+                                                "present_class": {
+                                                    "type": "string",
+                                                    "example": "Primary 3"
+                                                }
+                                            },
                                             "type": "object"
                                         },
                                         "user": {
+                                            "description": "Learner user account",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "John Michael Doe"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "learner"
+                                                },
+                                                "school_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "learner_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
@@ -1104,10 +1174,39 @@
                         }
                     },
                     "403": {
-                        "description": "School not linked to account"
+                        "description": "No school linked to this account",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No school linked to this account"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -2223,15 +2322,14 @@
                 "tags": [
                     "School"
                 ],
-                "summary": "Get learners under school admin's school",
-                "description": "Returns learners under the logged-in school admin's school with optional filters",
+                "summary": "Retrieve all learners for the authenticated school",
+                "description": "Returns a list of learners for the school of the authenticated school admin. Supports optional filters like student name, email, parent name, state, LGA, class, and date of registration. Includes login_id for each learner.",
                 "operationId": "d407f72ece37d9cf03560cd68cc615f9",
                 "parameters": [
                     {
                         "name": "student_name",
                         "in": "query",
-                        "description": "Filter by student name",
-                        "required": false,
+                        "description": "Filter learners by full or partial student name",
                         "schema": {
                             "type": "string",
                             "example": "John Doe"
@@ -2240,18 +2338,16 @@
                     {
                         "name": "student_email",
                         "in": "query",
-                        "description": "Filter by student email",
-                        "required": false,
+                        "description": "Filter learners by email",
                         "schema": {
                             "type": "string",
-                            "example": "johndoe@gmail.com"
+                            "example": "johndoe@example.com"
                         }
                     },
                     {
                         "name": "parent_name",
                         "in": "query",
-                        "description": "Filter by parent's name",
-                        "required": false,
+                        "description": "Filter learners by parent name",
                         "schema": {
                             "type": "string",
                             "example": "Jane Doe"
@@ -2260,8 +2356,7 @@
                     {
                         "name": "state",
                         "in": "query",
-                        "description": "Filter by state of origin",
-                        "required": false,
+                        "description": "Filter learners by state of origin",
                         "schema": {
                             "type": "string",
                             "example": "Lagos"
@@ -2270,47 +2365,177 @@
                     {
                         "name": "lga",
                         "in": "query",
-                        "description": "Filter by LGA of origin",
-                        "required": false,
+                        "description": "Filter learners by local government area (LGA)",
                         "schema": {
                             "type": "string",
-                            "example": "Apapa"
+                            "example": "Ikeja"
                         }
                     },
                     {
                         "name": "class",
                         "in": "query",
-                        "description": "Filter by previous or present class",
-                        "required": false,
+                        "description": "Filter learners by class (previous or present)",
                         "schema": {
                             "type": "string",
-                            "example": "Primary 4"
+                            "example": "NUR 1"
                         }
                     },
                     {
                         "name": "date",
                         "in": "query",
-                        "description": "Filter by created date (YYYY-MM-DD)",
-                        "required": false,
+                        "description": "Filter learners by registration date (YYYY-MM-DD)",
                         "schema": {
                             "type": "string",
                             "format": "date",
-                            "example": "2026-01-02"
+                            "example": "2026-02-10"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Learners retrieved successfully"
+                        "description": "List of learners retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "school_id": {
+                                            "type": "integer",
+                                            "example": 12
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 10
+                                        },
+                                        "learners": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "surname": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "first_name": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "middle_name": {
+                                                        "type": "string",
+                                                        "example": "Michael"
+                                                    },
+                                                    "dob": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2015-01-15"
+                                                    },
+                                                    "previous_class": {
+                                                        "type": "string",
+                                                        "example": "NUR 1"
+                                                    },
+                                                    "present_class": {
+                                                        "type": "string",
+                                                        "example": "NUR 2"
+                                                    },
+                                                    "session": {
+                                                        "type": "string",
+                                                        "example": "2024/2025 Academic Session"
+                                                    },
+                                                    "term": {
+                                                        "type": "string",
+                                                        "example": "First Term"
+                                                    },
+                                                    "login_id": {
+                                                        "type": "string",
+                                                        "example": "LNCSN/LAG/HOL/0001"
+                                                    },
+                                                    "parent_name": {
+                                                        "type": "string",
+                                                        "example": "Jane Doe"
+                                                    },
+                                                    "parent_phone": {
+                                                        "type": "string",
+                                                        "example": "08012345678"
+                                                    },
+                                                    "photo": {
+                                                        "type": "string",
+                                                        "example": "https://example.com/photos/learner5.jpg"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
-                        "description": "Unauthorized"
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "Forbidden"
+                        "description": "Forbidden - School admin access only",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden. School admin access only."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "No school assigned to this admin",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No school assigned to this admin."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "404": {
-                        "description": "No learners found"
+                        "description": "No learners found under this school",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No learners found under this school."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -2325,14 +2550,14 @@
                 "tags": [
                     "School"
                 ],
-                "summary": "View a learner",
-                "description": "Retrieve a single learner belonging to the authenticated school.",
-                "operationId": "showLearner",
+                "summary": "Retrieve a single learner",
+                "description": "Retrieve a learner belonging to the authenticated school admin's school. Includes all learner fields, session, term, and login_id.",
+                "operationId": "a62ab577c75be40c9c90397c8c65af61",
                 "parameters": [
                     {
                         "name": "learnerId",
                         "in": "path",
-                        "description": "Learner ID",
+                        "description": "ID of the learner to retrieve",
                         "required": true,
                         "schema": {
                             "type": "integer",
@@ -2348,7 +2573,121 @@
                                 "schema": {
                                     "properties": {
                                         "learner": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "surname": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "first_name": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "middle_name": {
+                                                    "type": "string",
+                                                    "example": "Michael"
+                                                },
+                                                "dob": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2015-01-15"
+                                                },
+                                                "previous_class": {
+                                                    "type": "string",
+                                                    "example": "NUR 1"
+                                                },
+                                                "present_class": {
+                                                    "type": "string",
+                                                    "example": "NUR 2"
+                                                },
+                                                "state_of_origin": {
+                                                    "type": "string",
+                                                    "example": "Lagos"
+                                                },
+                                                "lga_of_origin": {
+                                                    "type": "string",
+                                                    "example": "Ikeja"
+                                                },
+                                                "parent_name": {
+                                                    "type": "string",
+                                                    "example": "Jane Doe"
+                                                },
+                                                "parent_relationship": {
+                                                    "type": "string",
+                                                    "example": "Mother"
+                                                },
+                                                "parent_phone": {
+                                                    "type": "string",
+                                                    "example": "08012345678"
+                                                },
+                                                "photo": {
+                                                    "type": "string",
+                                                    "example": "https://example.com/photos/learner1.jpg"
+                                                },
+                                                "login_id": {
+                                                    "type": "string",
+                                                    "example": "LNCSN/LAG/HOL/0001",
+                                                    "nullable": true
+                                                },
+                                                "session": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "2024/2025 Academic Session"
+                                                        }
+                                                    },
+                                                    "type": "object",
+                                                    "nullable": true
+                                                },
+                                                "term": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "example": "First Term"
+                                                        }
+                                                    },
+                                                    "type": "object",
+                                                    "nullable": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-02-10T12:30:00Z"
+                                                }
+                                            },
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
                                         }
                                     },
                                     "type": "object"
@@ -2651,18 +2990,40 @@
                 "tags": [
                     "Learner"
                 ],
-                "summary": "Get authenticated learner's profile",
-                "description": "Retrieves the profile of the authenticated learner, including associated school details.",
-                "operationId": "myLearnerProfile",
+                "summary": "Get Authenticated Learner Profile",
+                "operationId": "d9b83fd297c21cc8c07d39a63af68b6f",
                 "responses": {
                     "200": {
-                        "description": "Learner profile retrieved successfully",
+                        "description": "Authenticated learner profile",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
                                         "learner": {
-                                            "type": "object"
+                                            "description": "Learner details",
+                                            "type": "object",
+                                            "example": {
+                                                "id": 5,
+                                                "surname": "Doe",
+                                                "first_name": "John",
+                                                "middle_name": "Michael",
+                                                "dob": "2010-05-12",
+                                                "present_class": "Primary 3",
+                                                "school_id": 2
+                                            }
+                                        },
+                                        "user": {
+                                            "type": "object",
+                                            "example": {
+                                                "id": 9,
+                                                "name": "John Michael Doe",
+                                                "login_id": "LNCSN/CAT/GOV/0001",
+                                                "role": "learner"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -2670,15 +3031,19 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "No learner profile linked to this account",
+                    "401": {
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
                                         "message": {
                                             "type": "string",
-                                            "example": "No learner profile linked to this account"
+                                            "example": "Unauthorized"
                                         }
                                     },
                                     "type": "object"
@@ -7100,6 +7465,1598 @@
                     }
                 ]
             }
+        },
+        "/api/v1/super-admin/create/sessions": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Create a new academic session",
+                "description": "Creates a new academic session. Only super admins are allowed. If the session status is set to active, all other active sessions will be automatically set to inactive.",
+                "operationId": "0d25e2d356f6d359abe1a61ff11e1976",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "start_date",
+                                    "end_date",
+                                    "status"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "2024/2025 Academic Session"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-09-01"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-07-31"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "inactive"
+                                        ],
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Session created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Session created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "2024/2025 Academic Session"
+                                                },
+                                                "start_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2024-09-01"
+                                                },
+                                                "end_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2025-07-31"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "active"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "name": [
+                                                    "The name field is required."
+                                                ],
+                                                "end_date": [
+                                                    "The end date must be a date after start date."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/create/terms": {
+            "post": {
+                "tags": [
+                    "School"
+                ],
+                "summary": "Create a new term",
+                "description": "Creates a new academic term for the authenticated school admin's school. Only one active term is allowed per school. If status is set to active, any existing active term for the school will be set to inactive.",
+                "operationId": "f4a7f8ffd84ddad0d4e9122b548f018d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "start_date",
+                                    "end_date",
+                                    "status"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "First Term"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-09-10"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-12-15"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "inactive"
+                                        ],
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Term created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Term created successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "school_id": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "First Term"
+                                                },
+                                                "start_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2024-09-10"
+                                                },
+                                                "end_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2024-12-15"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "active"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "name": [
+                                                    "The name field is required."
+                                                ],
+                                                "end_date": [
+                                                    "The end date must be a date after start date."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/sessions": {
+            "get": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "Retrieve all sessions",
+                "description": "Returns a list of all academic sessions, ordered by start date descending.",
+                "operationId": "5f5eb322e2b7320afb32aee12b2f9e66",
+                "responses": {
+                    "200": {
+                        "description": "List of sessions retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "2024/2025 Academic Session"
+                                                    },
+                                                    "start_date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2024-09-01"
+                                                    },
+                                                    "end_date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2025-07-31"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "2026-02-10T12:00:00Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "example": "2026-02-10T12:30:00Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/learner/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Learner login using Login ID and password",
+                "description": "Authenticates a learner using login_id and password and returns a JWT token.",
+                "operationId": "3efb1262537c33e31055b02b73e999d5",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "login_id",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "login_id": {
+                                        "description": "Unique learner login ID",
+                                        "type": "string",
+                                        "example": "CSN/ABC/SCH/0001"
+                                    },
+                                    "password": {
+                                        "description": "Learner account password",
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "bearer"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer",
+                                            "example": 3600
+                                        },
+                                        "user": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "John Doe"
+                                                },
+                                                "login_id": {
+                                                    "type": "string",
+                                                    "example": "CSN/ABC/SCH/0001"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "learner"
+                                                },
+                                                "learner_id": {
+                                                    "type": "integer",
+                                                    "example": 22
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid login credentials"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "login_id": [
+                                                    "The login id field is required."
+                                                ],
+                                                "password": [
+                                                    "The password field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/learner/logout": {
+            "post": {
+                "tags": [
+                    "Learner"
+                ],
+                "summary": "Learner Logout",
+                "operationId": "f0ed42e3cbcb10a0166a5bd90ec07c43",
+                "responses": {
+                    "200": {
+                        "description": "Logout successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Successfully logged out"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/update/session/{id}": {
+            "put": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Update an existing session",
+                "description": "Updates the details of a session. Only super admins can perform this action. If status is set to active, all other sessions will be set to inactive.",
+                "operationId": "8a0414e959b4833733b274b1b5ddb709",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the session to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "2024/2025 Academic Session"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-09-01"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-07-31"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "inactive"
+                                        ],
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Session updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Session updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "2024/2025 Academic Session"
+                                                },
+                                                "start_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2024-09-01"
+                                                },
+                                                "end_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2025-07-31"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "active"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:30:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Session not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "end_date": [
+                                                    "The end date must be a date after start date."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/update/term/{id}": {
+            "put": {
+                "tags": [
+                    "School"
+                ],
+                "summary": "Update an existing term",
+                "description": "Updates the details of a term for the authenticated school admin's school. Only one active term is allowed per school. If status is set to active, any other active term for the same school will be set to inactive.",
+                "operationId": "06645f6083f3fd8d9537665a6e89b3eb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the term to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "First Term"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-09-10"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-12-15"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "active",
+                                            "inactive"
+                                        ],
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Term updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Term updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "school_id": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "First Term"
+                                                },
+                                                "start_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2024-09-10"
+                                                },
+                                                "end_date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2024-12-15"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "active"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "example": "2026-02-10T12:30:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Term not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Term not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "end_date": [
+                                                    "The end date must be a date after start date."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/school/terms": {
+            "get": {
+                "tags": [
+                    "School"
+                ],
+                "summary": "Retrieve all terms for the authenticated school",
+                "description": "Returns a list of all terms for the school of the authenticated school admin, ordered by start date descending.",
+                "operationId": "d11477c72f981bf9578da2c668303695",
+                "responses": {
+                    "200": {
+                        "description": "List of terms retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "school_id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "First Term"
+                                                    },
+                                                    "start_date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2024-09-10"
+                                                    },
+                                                    "end_date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2024-12-15"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "2026-02-10T12:00:00Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "example": "2026-02-10T12:30:00Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/sessions/{id}": {
+            "get": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "Get session by ID",
+                "description": "Retrieve a single academic session by its ID.",
+                "operationId": "getSessionById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Session retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Session not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Session not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/terms/{id}": {
+            "get": {
+                "tags": [
+                    "School"
+                ],
+                "summary": "Get term by ID",
+                "description": "Retrieve a single academic term by its ID. School admin access only.",
+                "operationId": "getTermById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Term retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Term not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Term not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/create/province": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Create a new province",
+                "description": "Allows only super admins to create a new province",
+                "operationId": "a5b3af485d157a4b57dc9d3197dbf1d7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "description": "Unique province name",
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Province created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Province created successfully"
+                                        },
+                                        "province": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "LAGOS"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - User is not a super admin",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "name": [
+                                                    "The name has already been taken."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/get/all/provinces": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get all provinces",
+                "description": "Retrieve a list of all provinces ordered alphabetically",
+                "operationId": "190c389de0ea7ab78a91637bc85134d2",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "provinces": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "ABIA"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/get/provinces/{id}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get a single province",
+                "description": "Retrieve a province by ID including its dioceses",
+                "operationId": "1b7ab38d005146bc2fa9778609d87914",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Province ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Province retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "province": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "LAGOS"
+                                                },
+                                                "dioceses": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "IKEJA"
+                                                            },
+                                                            "province_id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Province not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Province not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -7136,6 +9093,10 @@
         {
             "name": "Reset Password",
             "description": "Reset Password"
+        },
+        {
+            "name": "Sessions",
+            "description": "Sessions"
         }
     ]
 }

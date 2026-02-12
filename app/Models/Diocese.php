@@ -11,7 +11,7 @@ class Diocese extends Model
 
     protected $fillable = [
         'name',
-        'province',
+        'province_id',
         'state',
         'lga',
         'address',
@@ -42,6 +42,11 @@ class Diocese extends Model
             'id',                        // Local key on dioceses table
             'id'                         // Local key on schools table
         );
+    }
+
+    public function province()
+    {
+        return $this->belongsTo(Province::class);
     }
 
     public function users()

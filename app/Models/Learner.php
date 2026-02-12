@@ -26,6 +26,8 @@ class Learner extends Model
         'parent_name',
         'parent_relationship',
         'parent_phone',
+        'session_id',
+        'term_id',
         'photo',
     ];
 
@@ -38,6 +40,17 @@ class Learner extends Model
     public function diocese()
     {
         return $this->belongsTo(Diocese::class);
+    }
+
+
+    public function session()
+    {
+        return $this->belongsTo(Session::class);
+    }
+
+    public function term()
+    {
+        return $this->belongsTo(Term::class);
     }
 
     // Learner ➜ User
