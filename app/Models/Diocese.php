@@ -26,9 +26,10 @@ class Diocese extends Model
         return $this->hasMany(School::class);
     }
 
-    public function educationsecretary()
+    // ✅ CORRECT RELATIONSHIP
+    public function educationSecretaries()
     {
-        return $this->hasMany(EducationSecretary::class);
+        return $this->hasMany(EducationSecretary::class, 'diocese_id');
     }
 
     // Diocese has many Learners through Schools

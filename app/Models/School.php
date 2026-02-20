@@ -13,7 +13,7 @@ class School extends Model
         'diocese_id',
         'name',
         'email',
-        'province',
+        'province_id',   // updated to use foreign key
         'state',
         'lga',
         'address',
@@ -35,6 +35,12 @@ class School extends Model
     public function diocese()
     {
         return $this->belongsTo(Diocese::class);
+    }
+
+        // School ➜ Province
+    public function province()
+    {
+        return $this->belongsTo(Province::class);
     }
 
     // School ➜ Learners
